@@ -1,4 +1,4 @@
-module github.com/GitCecile/spaghetti
+module spaghetti3
 
 go 1.16
 
