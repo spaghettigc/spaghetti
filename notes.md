@@ -13,3 +13,7 @@ https://pkg.go.dev/github.com/google/go-github/v39/github#pkg-types
 https://pkg.go.dev/fmt#Printf
 https://stackoverflow.com/questions/59091824/why-does-printf-leave-an-extra-after-my-output
 https://docs.github.com/en/rest/reference/issues#timeline
+https://docs.github.com/en/enterprise-server@3.0/developers/webhooks-and-events/events/issue-event-types#review_requested
+https://docs.github.com/en/rest/reference/pulls#list-requested-reviewers-for-a-pull-request
+https://slack.com/intl/en-gb/help/articles/115005265703-Create-a-bot-for-your-workspace
+https://api.slack.com/authentication/best-practices#slack_apps__incoming-webhook-urls
