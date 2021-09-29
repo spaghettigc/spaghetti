@@ -5,3 +5,11 @@ https://docs.github.com/en/rest/reference/activity#notifications
 https://docs.github.com/en/developers/apps/getting-started-with-apps/about-apps#about-github-apps
 https://docs.github.com/en/developers/apps/getting-started-with-apps/setting-up-your-development-environment-to-create-a-github-app#introduction
 https://docs.github.com/en/rest/reference/permissions-required-for-github-apps
+https://docs.github.com/en/rest/reference/permissions-required-for-github-apps#permission-on-contents
+https://github.com/organizations/spaghettigc/settings/apps/spaghettiapp/advanced
+https://mholt.github.io/json-to-go/ 
+https://github.com/spaghettigc/spaghetti/settings/access
+https://pkg.go.dev/github.com/google/go-github/v39/github#pkg-types
+https://pkg.go.dev/fmt#Printf
+https://stackoverflow.com/questions/59091824/why-does-printf-leave-an-extra-after-my-output
+https://docs.github.com/en/rest/reference/issues#timeline
