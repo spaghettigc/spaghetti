@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,15 +14,10 @@ import (
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
 	"github.com/joho/godotenv"
+	"github.com/slack-go/slack"
 )
 
-func main() {
-	ctx := context.Background()
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
+func client(ctx context.Context) {
 	// app_id, err := strconv.Atoi(os.Getenv("APP_ID"))
 	app_id, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
 	if err != nil {
@@ -45,98 +41,90 @@ func main() {
 	fmt.Printf("%s", bod)
 
 	if err != nil {
-		// this is currently failing with could not refresh installation id 138635's token:, we suspect it's something to do with installation ID, aka 2nd arg in ghinstallation.NewKeyFromFile
 		log.Fatalf("client: %s", err)
 	}
 
-	// http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
-	// 	var body Webhook
-	// 	event := req.Header.Get("X-GitHub-Event")
-	// 	deliveryID := req.Header.Get("X-GitHub-Delivery")
-	// 	fmt.Printf("event: %s, deliveryID: %s\n", event, deliveryID)
+}
 
-	// 	err := json.NewDecoder(req.Body).Decode(&body)
-	// 	if err != nil {
-	// 		log.Fatalf("json decode: %s", err)
-	// 	}
-	// 	// fmt.Printf("%+v", body)
+func now() string {
+	return time.Now().Format(time.RFC3339)
+}
 
-	// 	s, _ := json.MarshalIndent(body, "", "\t")
-	// 	fmt.Print(string(s))
-	// 	// body, err := io.ReadAll(req.Body)
-	// })
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	// fmt.Print("started serving")
-	// err = http.ListenAndServe("localhost:3000", nil)
-	// if err != nil {
-	// 	log.Fatalf("http server: %s", err)
-	// }
+	slackAPI := slack.New(os.Getenv("SLACK_TOKEN"))
+
+	groups, err := slackAPI.GetUserGroups()
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+	for _, group := range groups {
+		fmt.Printf("ID: %s, Name: %s\n", group.ID, group.Name)
+	}
+
+	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
+		var body Webhook
+		event := req.Header.Get("X-GitHub-Event")
+		deliveryID := req.Header.Get("X-GitHub-Delivery")
+		fmt.Printf("[%s] event: %s, deliveryID: %s\n", now(), event, deliveryID)
+
+		if event == "pull_request" {
+			err := json.NewDecoder(req.Body).Decode(&body)
+			if err != nil {
+				log.Fatalf("json decode: %s", err)
+			}
+			// fmt.Printf("%+v", body)
+			fmt.Printf("[%s]: %s\n", now(), body.Action)
+
+			// requestteams[] length is > 0
+			// requestedteam name != ""
+			if body.Action == "review_requested" && (body.RequestedTeam.Name != "" || len(body.PullRequest.RequestedTeams) > 0) {
+				s, _ := json.MarshalIndent(body, "", "\t")
+				fmt.Printf("[%s]: %s", now(), string(s))
+			}
+			// body, err := io.ReadAll(req.Body)
+		}
+
+	})
+
+	fmt.Printf("[%s] started serving", now())
+	err = http.ListenAndServe("localhost:3000", nil)
+	if err != nil {
+		log.Fatalf("http server: %s", err)
+	}
 }
 
 type Webhook struct {
-	Action       string `json:"action"`
-	Installation struct {
-		ID      int `json:"id"`
-		Account struct {
-			Login             string `json:"login"`
-			ID                int    `json:"id"`
-			NodeID            string `json:"node_id"`
-			AvatarURL         string `json:"avatar_url"`
-			GravatarID        string `json:"gravatar_id"`
-			URL               string `json:"url"`
-			HTMLURL           string `json:"html_url"`
-			FollowersURL      string `json:"followers_url"`
-			FollowingURL      string `json:"following_url"`
-			GistsURL          string `json:"gists_url"`
-			StarredURL        string `json:"starred_url"`
-			SubscriptionsURL  string `json:"subscriptions_url"`
-			OrganizationsURL  string `json:"organizations_url"`
-			ReposURL          string `json:"repos_url"`
-			EventsURL         string `json:"events_url"`
-			ReceivedEventsURL string `json:"received_events_url"`
-			Type              string `json:"type"`
-			SiteAdmin         bool   `json:"site_admin"`
-		} `json:"account"`
-		RepositorySelection string `json:"repository_selection"`
-		AccessTokensURL     string `json:"access_tokens_url"`
-		RepositoriesURL     string `json:"repositories_url"`
-		HTMLURL             string `json:"html_url"`
-		AppID               int    `json:"app_id"`
-		AppSlug             string `json:"app_slug"`
-		TargetID            int    `json:"target_id"`
-		TargetType          string `json:"target_type"`
-		Permissions         struct {
-			Contents     string `json:"contents"`
-			Metadata     string `json:"metadata"`
-			PullRequests string `json:"pull_requests"`
-		} `json:"permissions"`
-		Events                 []interface{} `json:"events"`
-		CreatedAt              time.Time     `json:"created_at"`
-		UpdatedAt              time.Time     `json:"updated_at"`
-		SingleFileName         interface{}   `json:"single_file_name"`
-		HasMultipleSingleFiles bool          `json:"has_multiple_single_files"`
-		SingleFilePaths        []interface{} `json:"single_file_paths"`
-		SuspendedBy            interface{}   `json:"suspended_by"`
-		SuspendedAt            interface{}   `json:"suspended_at"`
-	} `json:"installation"`
+	Action      string `json:"action"`
+	Number      int    `json:"number"`
+	PullRequest struct {
+		HTMLURL            string    `json:"html_url"`
+		Title              string    `json:"title"`
+		Body               string    `json:"body"`
+		UpdatedAt          time.Time `json:"updated_at"`
+		RequestedReviewers []struct {
+			Login string `json:"login"`
+		} `json:"requested_reviewers"`
+		RequestedTeams []struct {
+			Name string `json:"name"`
+		} `json:"requested_teams"`
+	} `json:"pull_request"`
+	RequestedTeam struct {
+		Name string `json:"name"`
+	} `json:"requested_team"`
+	Repository struct {
+		Name string `json:"name"`
+	} `json:"repository"`
 	Sender struct {
-		Login             string `json:"login"`
-		ID                int    `json:"id"`
-		NodeID            string `json:"node_id"`
-		AvatarURL         string `json:"avatar_url"`
-		GravatarID        string `json:"gravatar_id"`
-		URL               string `json:"url"`
-		HTMLURL           string `json:"html_url"`
-		FollowersURL      string `json:"followers_url"`
-		FollowingURL      string `json:"following_url"`
-		GistsURL          string `json:"gists_url"`
-		StarredURL        string `json:"starred_url"`
-		SubscriptionsURL  string `json:"subscriptions_url"`
-		OrganizationsURL  string `json:"organizations_url"`
-		ReposURL          string `json:"repos_url"`
-		EventsURL         string `json:"events_url"`
-		ReceivedEventsURL string `json:"received_events_url"`
-		Type              string `json:"type"`
-		SiteAdmin         bool   `json:"site_admin"`
+		Login string `json:"login"`
 	} `json:"sender"`
+	Installation struct { // app installation ID at org level
+		ID     int    `json:"id"`
+		NodeID string `json:"node_id"`
+	} `json:"installation"`
 }
