@@ -8,5 +8,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/slack-go/slack v0.9.5 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 )
