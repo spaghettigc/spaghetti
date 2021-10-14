@@ -17,3 +17,4 @@ https://docs.github.com/en/enterprise-server@3.0/developers/webhooks-and-events/
 https://docs.github.com/en/rest/reference/pulls#list-requested-reviewers-for-a-pull-request
 https://slack.com/intl/en-gb/help/articles/115005265703-Create-a-bot-for-your-workspace
 https://api.slack.com/authentication/best-practices#slack_apps__incoming-webhook-urls
+https://api.slack.com/reference/block-kit/blocks
