@@ -18,3 +18,13 @@ https://docs.github.com/en/rest/reference/pulls#list-requested-reviewers-for-a-p
 https://slack.com/intl/en-gb/help/articles/115005265703-Create-a-bot-for-your-workspace
 https://api.slack.com/authentication/best-practices#slack_apps__incoming-webhook-urls
 https://api.slack.com/reference/block-kit/blocks
+https://github.com/golang/go/wiki/CodeReviewComments#variable-names
+
+- teams with rota
+  - team + user
+- teams without rota
+  - team
+
+- Cecile was assigneed. PR Title(reponame/#123)
+- BR is requested to review by someone
+- body

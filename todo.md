@@ -18,3 +18,6 @@
 [] v1: have a static user mapping, stored in code
 [] Move the code to gocardless (CI+Sentry/Kibana) + remap user mapping (slack IDs are different between workspaces)
 [] v2: support manually entered slack user github user mapping
+
+[] add tests for postmessage and formatmessage
+[] fix makefile
