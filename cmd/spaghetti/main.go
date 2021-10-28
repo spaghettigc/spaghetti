@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"spaghetti3/pkg/formatmessage"
+	"spaghetti3/pkg/postmessage"
 	"time"
 
 	"os"
@@ -18,17 +20,17 @@ import (
 )
 
 func client(ctx context.Context) {
-	// app_id, err := strconv.Atoi(os.Getenv("APP_ID"))
-	app_id, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
+	appID, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
 	if err != nil {
 		log.Fatalf("app_id: %s", err)
 	}
-	installation_id, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
+	installationID, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
 	if err != nil {
 		log.Fatalf("app_id: %s", err)
 	}
+	privateKeyFile := os.Getenv("PRIVATE_KEY_FILE")
 
-	itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, app_id, installation_id, "spaghettiapp.2021-09-16.private-key.pem")
+	itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, appID, installationID, privateKeyFile)
 	if err != nil {
 		log.Fatalf("key: %s", err)
 	}
@@ -56,19 +58,12 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	// here
 	slackAPI := slack.New(os.Getenv("SLACK_TOKEN"))
-
-	groups, err := slackAPI.GetUserGroups()
-	if err != nil {
-		fmt.Printf("%s\n", err)
-		return
-	}
-	for _, group := range groups {
-		fmt.Printf("ID: %s, Name: %s\n", group.ID, group.Name)
-	}
+	channelID := os.Getenv("SLACK_CHANNEL_ID")
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
-		var body Webhook
+		var body formatmessage.Webhook
 		event := req.Header.Get("X-GitHub-Event")
 		deliveryID := req.Header.Get("X-GitHub-Delivery")
 		fmt.Printf("[%s] event: %s, deliveryID: %s\n", now(), event, deliveryID)
@@ -78,16 +73,22 @@ func main() {
 			if err != nil {
 				log.Fatalf("json decode: %s", err)
 			}
-			// fmt.Printf("%+v", body)
+
 			fmt.Printf("[%s]: %s\n", now(), body.Action)
 
-			// requestteams[] length is > 0
-			// requestedteam name != ""
 			if body.Action == "review_requested" && (body.RequestedTeam.Name != "" || len(body.PullRequest.RequestedTeams) > 0) {
 				s, _ := json.MarshalIndent(body, "", "\t")
 				fmt.Printf("[%s]: %s", now(), string(s))
+
+				message := formatmessage.FormatMessage(body)
+
+				options := postmessage.PostMessageOptions{
+					Message:   message,
+					ChannelID: channelID,
+				}
+
+				postmessage.PostMessage(slackAPI, options)
 			}
-			// body, err := io.ReadAll(req.Body)
 		}
 
 	})
@@ -97,34 +98,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("http server: %s", err)
 	}
-}
-
-type Webhook struct {
-	Action      string `json:"action"`
-	Number      int    `json:"number"`
-	PullRequest struct {
-		HTMLURL            string    `json:"html_url"`
-		Title              string    `json:"title"`
-		Body               string    `json:"body"`
-		UpdatedAt          time.Time `json:"updated_at"`
-		RequestedReviewers []struct {
-			Login string `json:"login"`
-		} `json:"requested_reviewers"`
-		RequestedTeams []struct {
-			Name string `json:"name"`
-		} `json:"requested_teams"`
-	} `json:"pull_request"`
-	RequestedTeam struct {
-		Name string `json:"name"`
-	} `json:"requested_team"`
-	Repository struct {
-		Name string `json:"name"`
-	} `json:"repository"`
-	Sender struct {
-		Login string `json:"login"`
-	} `json:"sender"`
-	Installation struct { // app installation ID at org level
-		ID     int    `json:"id"`
-		NodeID string `json:"node_id"`
-	} `json:"installation"`
 }
