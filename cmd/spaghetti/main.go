@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"spaghetti/pkg/formatmessage"
@@ -39,6 +40,8 @@ func main() {
 			if err != nil {
 				log.Fatalf("json decode: %s", err)
 			}
+			file, _ := json.MarshalIndent(body, "", " ")
+			_ = ioutil.WriteFile(fmt.Sprintf("recording/%s.json", now()), file, 0644)
 
 			fmt.Printf("[%s]: %s\n", now(), body.Action)
 
