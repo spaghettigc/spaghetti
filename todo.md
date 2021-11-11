@@ -20,4 +20,4 @@
 [] v2: support manually entered slack user github user mapping
 
 [] add tests for postmessage and formatmessage
-[] fix makefile
+[x] fix makefile
