@@ -19,6 +19,9 @@ https://slack.com/intl/en-gb/help/articles/115005265703-Create-a-bot-for-your-wo
 https://api.slack.com/authentication/best-practices#slack_apps__incoming-webhook-urls
 https://api.slack.com/reference/block-kit/blocks
 https://github.com/golang/go/wiki/CodeReviewComments#variable-names
+https://github.com/rakyll/gotest
+https://blog.questionable.services/article/testing-http-handlers-go/
+https://code.visualstudio.com/docs/languages/go#_import-packages
 
 - teams with rota
   - team + user
