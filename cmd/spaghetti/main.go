@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"spaghetti3/pkg/formatmessage"
-	"spaghetti3/pkg/postmessage"
+	"spaghetti/pkg/formatmessage"
+	"spaghetti/pkg/postmessage"
 	"time"
 
 	"os"
@@ -25,7 +25,6 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// here
 	slackAPI := slack.New(os.Getenv("SLACK_TOKEN"))
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 
