@@ -28,10 +28,7 @@ type Repository struct {
 type Sender struct {
 	Login string `json:"login"`
 }
-type Installation struct { // app installation ID at org level
-	ID     int    `json:"id"`
-	NodeID string `json:"node_id"`
-}
+
 type Webhook struct {
 	Action        string `json:"action"`
 	Number        int    `json:"number"`
@@ -39,7 +36,6 @@ type Webhook struct {
 	RequestedTeam `json:"requested_team"`
 	Repository    `json:"repository"`
 	Sender        `json:"sender"`
-	Installation  `json:"installation"`
 }
 
 func GetAssignee(body Webhook) string {
