@@ -3,3 +3,5 @@ build:
 	go build -o ./bin/main ./cmd/spaghetti/main.go
 run:
 	./bin/main
+test:
+	gotest ./...
