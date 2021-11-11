@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,42 +10,10 @@ import (
 	"time"
 
 	"os"
-	"strconv"
 
-	"github.com/bradleyfalzon/ghinstallation"
-	"github.com/google/go-github/github"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
-
-func client(ctx context.Context) {
-	appID, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
-	if err != nil {
-		log.Fatalf("app_id: %s", err)
-	}
-	installationID, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
-	if err != nil {
-		log.Fatalf("app_id: %s", err)
-	}
-	privateKeyFile := os.Getenv("PRIVATE_KEY_FILE")
-
-	itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, appID, installationID, privateKeyFile)
-	if err != nil {
-		log.Fatalf("key: %s", err)
-	}
-	client := github.NewClient(&http.Client{Transport: itr})
-
-	pr, _, err := client.PullRequests.Get(ctx, "spaghettigc", "spaghetti", 3)
-	fmt.Printf("%v\n", pr.RequestedReviewers)
-	fmt.Printf("\n\n")
-	bod := *pr.Body
-	fmt.Printf("%s", bod)
-
-	if err != nil {
-		log.Fatalf("client: %s", err)
-	}
-
-}
 
 func now() string {
 	return time.Now().Format(time.RFC3339)
