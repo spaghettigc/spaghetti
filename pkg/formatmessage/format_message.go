@@ -42,12 +42,12 @@ type Webhook struct {
 	Installation  `json:"installation"`
 }
 
-func GetAssignee(body Webhook) (string, bool) {
+func GetAssignee(body Webhook) string {
 	r := body.PullRequest.RequestedReviewers
 	if len(r) == 0 { // TODO deal with potentially multiple teams
-		return "", false
+		return ""
 	}
-	return r[0].Login, true
+	return r[0].Login
 }
 
 func FormatAssignee(githubUser string) string {
@@ -91,9 +91,9 @@ func FormatMessage(body Webhook) string {
 		Truncate(body.PullRequest.Body),
 	)
 
-	githubUser, assigned := GetAssignee(body)
+	githubUser := GetAssignee(body)
 	var assignee string
-	if assigned {
+	if githubUser != "" {
 		assignee = FormatAssignee(githubUser)
 	}
 
