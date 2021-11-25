@@ -40,5 +40,5 @@ The context for 2) is we have no f-ing clue how
 ```
 ThePesta requested review from spaghettigc/betterspaghettiteam, spaghettigc/obviousspaghettiteam, wmytbaow (assigned from spaghettigc/obviousspaghettiteam)
 ```
-how the information about which user is assigned comes from, because the event https://api.github.com/repos/spaghettigc/spaghetti/issues/events/5672461546 only contains the review requester and requested team
-
+how the information about which user is assigned comes from, because the event https://api.github.com/repos/spaghettigc/spaghetti/issues/events/5672461546 only contains the review requester and requested team.
+we tried hitting the timeline API with the golang github client but saw the same stuff as the webhook events.
