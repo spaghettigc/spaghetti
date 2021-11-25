@@ -26,6 +26,7 @@ https://github.com/dnaeon/go-vcr/blob/dd1bc740014d441c053d3dc9119ba533871c7f0c/v
 https://github.com/dnaeon/go-vcr/blob/dd1bc740014d441c053d3dc9119ba533871c7f0c/cassette/cassette.go#L94
 https://github.com/dnaeon/go-vcr/blob/0a1f2acce90f079b99ed7bd78e5000ae3d05b620/cassette/cassette.go#L192
 https://pkg.go.dev/net/http#Request
+https://docs.github.com/en/rest/reference/issues#timeline
 
 - teams with rota
   - team + user
