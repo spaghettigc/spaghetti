@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"spaghetti/pkg/formatmessage"
 	"spaghetti/pkg/postmessage"
+	"spaghetti/pkg/vcr"
 	"time"
 
 	"os"
@@ -31,6 +31,14 @@ func main() {
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 		var body formatmessage.Webhook
+
+		_, err = vcr.RequestHandler(req, body, "review-multiple-members")
+
+		if err != nil {
+			panic(err)
+			log.Fatalf("j: %s", err)
+		}
+
 		event := req.Header.Get("X-GitHub-Event")
 		deliveryID := req.Header.Get("X-GitHub-Delivery")
 		fmt.Printf("[%s] event: %s, deliveryID: %s\n", now(), event, deliveryID)
@@ -40,8 +48,6 @@ func main() {
 			if err != nil {
 				log.Fatalf("json decode: %s", err)
 			}
-			file, _ := json.MarshalIndent(body, "", " ")
-			_ = ioutil.WriteFile(fmt.Sprintf("recording/%s.json", now()), file, 0644)
 
 			fmt.Printf("[%s]: %s\n", now(), body.Action)
 
