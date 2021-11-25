@@ -38,12 +38,12 @@ type Webhook struct {
 	Sender        `json:"sender"`
 }
 
-func GetAssignee(body Webhook) string {
-	r := body.PullRequest.RequestedReviewers
-	if len(r) == 0 { // TODO deal with potentially multiple teams
-		return ""
+func GetAssignees(body Webhook) []string {
+	var reviews []string
+	for _, r := range body.PullRequest.RequestedReviewers {
+		reviews = append(reviews, r.Login)
 	}
-	return r[0].Login
+	return reviews
 }
 
 func FormatAssignee(githubUser string) string {
@@ -87,10 +87,10 @@ func FormatMessage(body Webhook) string {
 		Truncate(body.PullRequest.Body),
 	)
 
-	githubUser := GetAssignee(body)
+	githubUser := GetAssignees(body)
 	var assignee string
-	if githubUser != "" {
-		assignee = FormatAssignee(githubUser)
+	if githubUser[0] != "" {
+		assignee = FormatAssignee(githubUser[0])
 	}
 
 	message := fmt.Sprintf(

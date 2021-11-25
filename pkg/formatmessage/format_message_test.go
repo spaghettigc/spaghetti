@@ -1,71 +1,62 @@
 package formatmessage
 
 import (
+	"encoding/json"
+	"os"
+	"reflect"
+	"spaghetti/pkg/vcr"
 	"testing"
-	"github.com/dnaeon/go-vcr/v2/recorder"
 )
-	
 
 func TestGetAssigneeEmptyRequestedReviewers(t *testing.T) {
 	body := Webhook{}
-	have := GetAssignee(body)
-	want := ""
-	if have != want  {
+	have := GetAssignees(body)
+	want := []string{
+		"",
+	}
+	if !reflect.DeepEqual(have, want) {
 		t.Fatalf("Have: %s, want: %s", have, want)
 	}
 }
 
 func TestGetAssigneeHasRequestedReviewers(t *testing.T) {
-	want := "someone"
-	reviewers := []RequestedReviewer{
-		{
-			Login: want,
-		},
+	want := []string{"someone"}
+
+	wd, _ := os.Getwd()
+	filename := wd + "/recording/team-review-one-member.json"
+	request, _ := vcr.ReadRequest(filename)
+
+	var body Webhook
+
+	err := json.Unmarshal([]byte(request.Body), &body)
+	if err != nil {
+		t.Fatalf("%s", err.Error())
 	}
 
-	body := Webhook{
-		PullRequest: PullRequest{
-			RequestedReviewers: reviewers,
-		},
-	}
-
-	have := GetAssignee(body)
-	if have != want {
+	have := GetAssignees(body)
+	if !reflect.DeepEqual(have, want) {
 		t.Fatalf("Have: %s, want: %s", have, want)
 	}
+}
 
 func TestGetAssigneeHasMultipleRequestedReviewers(t *testing.T) {
-	want := "someone"
-	reviewers := []RequestedReviewer{
-		{
-			Login: "not me",
-		},
-		{
-			Login: want,
-		},
+	want := []string{"someone", "222"}
+
+	wd, _ := os.Getwd()
+
+	filename := wd + "/recording/review-multiple-members.json"
+	request, _ := vcr.ReadRequest(filename)
+
+	var body Webhook
+
+	err := json.Unmarshal([]byte(request.Body), &body)
+	if err != nil {
+		t.Fatalf("%s", err.Error())
 	}
 
-	example_response.json
-
-	body := Webhook{
-		PullRequest: PullRequest{
-			RequestedReviewers: reviewers,
-		},
-	}
-
-	func getBodyFromReq() {
-		fileWithReq := openRecording()
-
-		body := fileWithReq.body
-
-		return body
-	}
-
-	body := getBodyFromReq()
-
-	have := GetAssignee(body)
-	if have != want {
+	have := GetAssignees(body)
+	if !reflect.DeepEqual(have, want) {
 		t.Fatalf("Have: %s, want: %s", have, want)
 	}
-	recorder
+
 }
