@@ -22,4 +22,10 @@
 [] add tests for postmessage and formatmessage
 [x] fix makefile
 
-[] GetAssignee with multiple requested reviewers (we need a third account)
+[x] GetAssignee with multiple requested reviewers (we need a third account)
+
+[] try to get the timeline event id
+[] fix the code to
+  - Assess if the requested review is in the team
+  - We want the review that triggers the webhook (timeline events)
+[] make the recording code more generic, accept a directory, filename automated from test name

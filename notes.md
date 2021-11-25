@@ -22,6 +22,10 @@ https://github.com/golang/go/wiki/CodeReviewComments#variable-names
 https://github.com/rakyll/gotest
 https://blog.questionable.services/article/testing-http-handlers-go/
 https://code.visualstudio.com/docs/languages/go#_import-packages
+https://github.com/dnaeon/go-vcr/blob/dd1bc740014d441c053d3dc9119ba533871c7f0c/v2/recorder/recorder.go#L144
+https://github.com/dnaeon/go-vcr/blob/dd1bc740014d441c053d3dc9119ba533871c7f0c/cassette/cassette.go#L94
+https://github.com/dnaeon/go-vcr/blob/0a1f2acce90f079b99ed7bd78e5000ae3d05b620/cassette/cassette.go#L192
+https://pkg.go.dev/net/http#Request
 
 - teams with rota
   - team + user
@@ -31,3 +35,6 @@ https://code.visualstudio.com/docs/languages/go#_import-packages
 - Cecile was assigneed. PR Title(reponame/#123)
 - BR is requested to review by someone
 - body
+
+
+https://github.com/organizations/spaghettigc/settings/apps/spaghettiapp
