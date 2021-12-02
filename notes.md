@@ -39,3 +39,14 @@ https://docs.github.com/en/rest/reference/issues#timeline
 
 
 https://github.com/organizations/spaghettigc/settings/apps/spaghettiapp
+https://github.blog/changelog/2021-09-29-new-code-review-assignment-settings-and-team-filtering-improvements/
+
+- Webhook 
+  - PR # (issue number)
+  - Assigned team
+- Individual assigned to me from API? - username
+
+https://pkg.go.dev/golang.org/x/net/html#Parse
+https://github.com/PuerkitoBio/goquery
+https://www.w3.org/TR/selectors/#attribute-substrings
+
