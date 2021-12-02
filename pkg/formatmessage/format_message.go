@@ -2,8 +2,12 @@ package formatmessage
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"regexp"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type PullRequest struct {
@@ -29,6 +33,10 @@ type Sender struct {
 	Login string `json:"login"`
 }
 
+type Organization struct {
+	Login string `json:"login"`
+}
+
 type Webhook struct {
 	Action        string `json:"action"`
 	Number        int    `json:"number"`
@@ -36,14 +44,43 @@ type Webhook struct {
 	RequestedTeam `json:"requested_team"`
 	Repository    `json:"repository"`
 	Sender        `json:"sender"`
+	Organization  `json:"organization"`
 }
 
-func GetAssignees(body Webhook) []string {
-	var reviews []string
-	for _, r := range body.PullRequest.RequestedReviewers {
-		reviews = append(reviews, r.Login)
+type Assigned struct {
+	User string
+	Team string
+}
+
+func GetAssignedReviewersAndTeam(resp *http.Response, eventID string) ([]Assigned, error) {
+	assignees := make([]Assigned, 0)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return assignees, err
 	}
-	return reviews
+	doc.Find(fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)).Each(func(i int, s *goquery.Selection) {
+		raw := s.Text()
+		r, _ := regexp.Compile(`(?P<user>.+) \(assigned from (?P<team>.+)\)`)
+		for _, txtArr := range r.FindAllStringSubmatch(raw, -1) {
+			var user string
+			var team string
+			for i, t := range txtArr {
+				if i == 0 { // entire match
+					continue
+				}
+				if i == 1 { // user
+					user = t
+				}
+				if i == 2 { // team
+					team = t
+				}
+			}
+
+			assignees = append(assignees, Assigned{User: user, Team: team})
+		}
+	})
+
+	return assignees, nil
 }
 
 func FormatAssignee(githubUser string) string {
@@ -71,14 +108,14 @@ func FormatAssignee(githubUser string) string {
 // - Cecile was assigneed. PR Title(reponame/#123)
 // - BR is requested to review by someone
 // - body
-func FormatMessage(body Webhook) string {
+func FormatMessage(body Webhook, assignee Assigned) string {
 	url := fmt.Sprintf("<%s|%s#%d>", body.PullRequest.HTMLURL, body.Repository.Name, body.Number)
 
 	prTitle := fmt.Sprintf("PR title: %s (%s).", body.PullRequest.Title, url)
 
 	teamAndSender := fmt.Sprintf(
 		"%s team was requested to review by %s.",
-		body.RequestedTeam.Name,
+		assignee.Team,
 		body.Sender.Login,
 	)
 
@@ -87,17 +124,14 @@ func FormatMessage(body Webhook) string {
 		Truncate(body.PullRequest.Body),
 	)
 
-	githubUser := GetAssignees(body)
-	var assignee string
-	if githubUser[0] != "" {
-		assignee = FormatAssignee(githubUser[0])
-	}
+	var assigneeMsg string
+	assigneeMsg = FormatAssignee(assignee.User)
 
 	message := fmt.Sprintf(
 		"%s %s\n"+
 			"%s \n"+
 			"%s",
-		assignee,
+		assigneeMsg,
 		prTitle,
 		teamAndSender,
 		prBody,
