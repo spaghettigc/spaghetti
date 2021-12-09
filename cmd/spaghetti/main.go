@@ -84,6 +84,56 @@ func main() {
 		panic(err)
 	}
 
+	perPage := 100
+	_, response, err := c.Issues.ListIssueTimeline(ctx, "spaghettigc", "spaghetti", 4, &github.ListOptions{Page: 1, PerPage: perPage})
+	if err != nil {
+		panic(err)
+	}
+	// look for the event id
+	// query the event api
+
+	// fmt.Printf("timeline: %v, %v", *timeline[len(timeline)-2].Event, *timeline[len(timeline)-2].ID)
+	// fmt.Printf("LastPage: %v", response.LastPage)
+	// fmt.Printf("NextPage: %v", response.NextPage)
+	// fmt.Printf("PrevPage: %v", response.PrevPage)
+
+	timestampt, err := time.Parse(time.RFC3339, "2021-12-09T10:40:56Z")
+	if err != nil {
+		panic(err)
+	}
+	something := true
+
+	var eventID *int64
+	currentPage := response.LastPage
+
+	for something == true {
+		timeline, response, err := c.Issues.ListIssueTimeline(ctx, "spaghettigc", "spaghetti", 4, &github.ListOptions{Page: currentPage, PerPage: perPage})
+		if err != nil {
+			panic(err)
+		}
+
+		for i := len(timeline) - 1; i >= 0; i-- {
+			t := timeline[i]
+			// fmt.Printf("*t.Event: %v - *t.CreatedAt: %v -  *t.ID: %v\n", *t.Event, *t.CreatedAt, *t.ID)
+			if *t.Event == "review_requested" && *t.CreatedAt == timestampt {
+				eventID = t.ID
+				something = false
+				fmt.Printf("eventID: %v\n", *eventID)
+				break
+			}
+
+		}
+		currentPage = response.PrevPage
+		fmt.Printf("pagenumber: %v\n", currentPage)
+		if currentPage == 0 {
+			something = false
+			fmt.Println("NOT FOUND")
+
+		}
+	}
+	// fmt.Printf("eventID: %v", *eventID)
+	return
+
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 		var body formatmessage.Webhook
 
@@ -112,13 +162,13 @@ func main() {
 				}
 				htmlURL := pull.GetHTMLURL()
 
-				resp, err := http.Get(htmlURL) // authenticating with GH how??
+				resp, err := http.Get(fmt.Sprintf("%s#event-%s", htmlURL, "5739922132")) // authenticating with GH how??
 				if err != nil {
 					log.Fatalf("http get: %s", err)
 				}
 				defer resp.Body.Close()
 
-				assignees, err := formatmessage.GetAssignedReviewersAndTeam(resp, "5705558574") // retunring zero assignees bug?
+				assignees, err := formatmessage.GetAssignedReviewersAndTeam(resp, "5739922132") // retunring zero assignees bug?
 				fmt.Printf("number of assignees: %d", len(assignees))
 				if err != nil {
 					log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
