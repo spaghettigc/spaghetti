@@ -50,3 +50,32 @@ https://pkg.go.dev/golang.org/x/net/html#Parse
 https://github.com/PuerkitoBio/goquery
 https://www.w3.org/TR/selectors/#attribute-substrings
 
+# notes of 2021-12-09
+https://api.github.com/repos/spaghettigc/spaghetti/issues/events/5739922110
+https://github.com/organizations/spaghettigc/settings/apps/spaghettiapp/advanced
+https://docs.github.com/en/rest/reference/repos#webhooks
+318500039
+https://github.com/organizations/spaghettigc/settings/apps/spaghettiapp/hooks/318500039/deliveries/6388129845
+https://codebeautify.org/string-to-json-online
+https://api.github.com/repos/spaghettigc/spaghetti/issues/4/events
+https://docs.github.com/en/rest/guides/traversing-with-pagination#changing-the-number-of-items-received
+https://github.com/spaghettigc/spaghetti/pull/4#event-5739922132
+
+There is no event id in the webhooks
+
+requested reviewers webhook => pr updated_at => timeline events => review requested event + created_at = pr.update_at => get the event id => hit the event api
+verification: verify is the users requester and the reviewers are the same
+if the verification check fails + we can't find any matching timeline events, we keep the logs, no notification, deal with it later
+slack message is 1/reviewer
+1 webhook/events can be multiple slack messages
+
+https://stackoverflow.com/a/40323622
+
+2 events for the same review request: 1 for the team, 1 for the assigned team member
+5739922132 (assignee with team from the ui)
+5739922110 (team only)
+
+Right now we support 1 team being requested, need to think of how to handle when event has several team requests for with several assignees
+
+We still need to move the GH pagination issue events timeline logic to work with the webhook to infer event ID
+- we got assginee = 0 when we make the formatmessage.GetAssignedReviewersAndTeam call, need to figure out why
