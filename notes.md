@@ -85,3 +85,14 @@ We still need to move the GH pagination issue events timeline logic to work with
 We will pick the lastest event ID, visit the event page with a headless browser as the event is rendered on the client side
 and is often missing from the original HTML for long PRs.
 We need to look for a headless browser solution for golang.
+
+Headless browsers:
+https://github.com/headzoo/surf
+https://github.com/sourcegraph/webloop#rendering-static-html-from-a-dynamic-single-page-angularjs-app
+
+Surf no JS support
+https://github.com/headzoo/surf/blob/a4a8c16c01dc47ef3a25326d21745806f3e6797a/docs/api/packages/browser.md#func-browser-click
+
+We need macports (homebrew alternative) to install webgtk stuff:
+need to be installed beforehand
+https://github.com/sourcegraph/webloop/issues/3#issuecomment-376425702

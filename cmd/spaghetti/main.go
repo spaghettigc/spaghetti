@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"sort"
 	"spaghetti/pkg/formatmessage"
 	"spaghetti/pkg/postmessage"
@@ -17,8 +18,10 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
+	"github.com/gotk3/gotk3/gtk"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
+	"github.com/sourcegraph/webloop"
 )
 
 func now() string {
@@ -173,6 +176,31 @@ func main() {
 				}
 				h := fmt.Sprintf("%s#event-%s", htmlURL, eventID)
 				fmt.Printf("%s#event-%s", htmlURL, eventID)
+
+				// use headless browser to get event details
+				gtk.Init(nil)
+				go func() {
+					runtime.LockOSThread()
+					gtk.Main()
+				}()
+
+				ctx := webloop.New()
+				view := ctx.NewView()
+				defer view.Close()
+				view.Open(h)
+				err = view.Wait()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to load URL: %s", err)
+					os.Exit(1)
+				}
+				res, err := view.EvaluateJavaScript("document.title")
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to run JavaScript: %s", err)
+					os.Exit(1)
+				}
+				fmt.Printf("JavaScript returned: %q\n", res)
+
+				// err = ioutil.WriteFile("recording/bow.html", []byte(res.Body()), 0644)
 
 				resp, err := http.Get(h) // authenticating with GH how??
 				if err != nil {
