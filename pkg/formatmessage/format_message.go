@@ -54,12 +54,20 @@ type Assigned struct {
 
 func GetAssignedReviewersAndTeam(resp *http.Response, eventID string) ([]Assigned, error) {
 	assignees := make([]Assigned, 0)
+
+	// b, err := ioutil.ReadAll(resp.Body)
+	// 5777536241
+	// Request URL: https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfFpVwXABqjU0Mjc1ODgyNjc%3D&before_cursor=Y3Vyc29yOnYyOpPPAAABfXspOVgBqjU3MDU1NjQ0NDc%3D&id=PR_kwDOGB7j384scVH7&anchor=event-5777536241
+
+	// err = ioutil.WriteFile(fmt.Sprintf("recording/%s.html", "boop"), b, 0644)
+
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return assignees, err
 	}
 	doc.Find(fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)).Each(func(i int, s *goquery.Selection) {
 		raw := s.Text()
+		fmt.Printf("raw: %v", raw)
 		r, _ := regexp.Compile(`(?P<user>.+) \(assigned from (?P<team>.+)\)`)
 		for _, txtArr := range r.FindAllStringSubmatch(raw, -1) {
 			var user string

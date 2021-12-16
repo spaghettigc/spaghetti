@@ -77,5 +77,11 @@ https://stackoverflow.com/a/40323622
 
 Right now we support 1 team being requested, need to think of how to handle when event has several team requests for with several assignees
 
-We still need to move the GH pagination issue events timeline logic to work with the webhook to infer event ID
-- we got assginee = 0 when we make the formatmessage.GetAssignedReviewersAndTeam call, need to figure out why
+We still need to move the GH pagination issue events timeline logic to work with the webhook to infer event ID => OK
+- we got assginee = 0 when we make the formatmessage.GetAssignedReviewersAndTeam call, need to figure out why  => OK
+
+# notes of 16/12/2021
+
+We will pick the lastest event ID, visit the event page with a headless browser as the event is rendered on the client side
+and is often missing from the original HTML for long PRs.
+We need to look for a headless browser solution for golang.
