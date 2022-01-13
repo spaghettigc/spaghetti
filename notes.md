@@ -96,3 +96,33 @@ https://github.com/headzoo/surf/blob/a4a8c16c01dc47ef3a25326d21745806f3e6797a/do
 We need macports (homebrew alternative) to install webgtk stuff:
 need to be installed beforehand
 https://github.com/sourcegraph/webloop/issues/3#issuecomment-376425702
+
+# notes of 13/01/2022
+installing webkit3 ain't working
+Package javascriptcoregtk-3.0 was not found in pkg-config search path: https://github.com/sourcegraph/webloop/issues/9
+
+if we run 
+
+pkg-config --variable pc_path pkg-config
+
+to find pkg-config, not sure reading https://askubuntu.com/questions/210210/pkg-config-path-environment-variable
+
+temporarily try `export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig`
+
+temporarily giving up on webloop due to build issues, looking for alternatives:
+https://github.com/go-rod/rod => this works
+https://github.com/chromedp/chromedp => haven't tried
+
+FYI we gave up on webloop cause webgtk3 is not easy to install
+
+We have managed to use rod as a headless browser and get the xx has requested a review from yy (assigned from zz).
+We fixed regex to parse the sentence.
+Works for 1 requested review from team
+Breaks for 2 requested review from 2 teams, because of our assumption to pick the last event id.
+We received 3 webhooks and sent out 3 identical messages. We missed 1 user being requested.
+Solution 1 - store seen events
+ - store the seen event ids somewhere and exclude it from the GetEvent logic
+Solution 2 - batching
+ - group webhooks by their UpdatedAt to make only one request to ListIssueTimeline(), to figure out how many messages we need to send
+ - we can limit the search of the issue timeline by restricting to the number of webhooks that have been grouped (e.g. with 2 reviewers on 2 teams, there's 3 webhooks, so at most attempt to find 3 event IDs we're interested in)
+ We voted for solution 2
