@@ -2,12 +2,11 @@ package formatmessage
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/go-rod/rod"
 )
 
 type PullRequest struct {
@@ -52,7 +51,7 @@ type Assigned struct {
 	Team string
 }
 
-func GetAssignedReviewersAndTeam(resp *http.Response, eventID string) ([]Assigned, error) {
+func GetAssignedReviewersAndTeam(eventID string, h string) ([]Assigned, error) {
 	assignees := make([]Assigned, 0)
 
 	// b, err := ioutil.ReadAll(resp.Body)
@@ -61,32 +60,35 @@ func GetAssignedReviewersAndTeam(resp *http.Response, eventID string) ([]Assigne
 
 	// err = ioutil.WriteFile(fmt.Sprintf("recording/%s.html", "boop"), b, 0644)
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return assignees, err
-	}
-	doc.Find(fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)).Each(func(i int, s *goquery.Selection) {
-		raw := s.Text()
-		fmt.Printf("raw: %v", raw)
-		r, _ := regexp.Compile(`(?P<user>.+) \(assigned from (?P<team>.+)\)`)
-		for _, txtArr := range r.FindAllStringSubmatch(raw, -1) {
-			var user string
-			var team string
-			for i, t := range txtArr {
-				if i == 0 { // entire match
-					continue
-				}
-				if i == 1 { // user
-					user = t
-				}
-				if i == 2 { // team
-					team = t
-				}
-			}
+	// use headless browser
+	page := rod.New().MustConnect().MustPage(h)
+	time.Sleep(5 * time.Second) // TODO non timeout way to wait for client render
+	// page.MustWaitLoad().MustScreenshot("a.png")
 
-			assignees = append(assignees, Assigned{User: user, Team: team})
+	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
+	el := page.MustElement(selector)
+	text := el.MustText()
+
+	fmt.Printf("\neventID: %s, text: %s\n", eventID, text)
+
+	r, _ := regexp.Compile(`(?P<requester>.+) requested a review from (?P<reviewer>.+) \(assigned from (?P<team>.+)\)`)
+	for _, txtArr := range r.FindAllStringSubmatch(text, -1) {
+		var user string
+		var team string
+		for i, t := range txtArr {
+			if i == 0 { // entire match
+				continue
+			}
+			if i == 2 { // reviewer
+				user = t
+			}
+			if i == 3 { // team
+				team = t
+			}
 		}
-	})
+
+		assignees = append(assignees, Assigned{User: user, Team: team})
+	}
 
 	return assignees, nil
 }

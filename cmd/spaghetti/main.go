@@ -129,7 +129,12 @@ func getEventId(ctx context.Context, body formatmessage.Webhook) (string, string
 	htmlURL = pull.GetHTMLURL()
 
 	sort.Strings(eventIDs)
-	return eventIDs[1], htmlURL, nil
+	return eventIDs[len(eventIDs)-1], htmlURL, nil
+}
+
+type Assigned struct {
+	Reviewer string
+	Team     string
 }
 
 func main() {
@@ -142,8 +147,6 @@ func main() {
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 
 	ctx := context.Background()
-
-	// fmt.Printf("eventID: %v", *eventID)
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 		var body formatmessage.Webhook
@@ -174,13 +177,7 @@ func main() {
 				h := fmt.Sprintf("%s#event-%s", htmlURL, eventID)
 				fmt.Printf("%s#event-%s", htmlURL, eventID)
 
-				resp, err := http.Get(h) // authenticating with GH how??
-				if err != nil {
-					log.Fatalf("http get: %s", err)
-				}
-				defer resp.Body.Close()
-
-				assignees, err := formatmessage.GetAssignedReviewersAndTeam(resp, eventID) // retunring zero assignees bug?
+				assignees, err := formatmessage.GetAssignedReviewersAndTeam(eventID, h) // retunring zero assignees bug?
 				fmt.Printf("number of assignees: %d", len(assignees))
 				if err != nil {
 					log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
