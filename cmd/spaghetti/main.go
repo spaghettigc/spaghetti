@@ -74,13 +74,6 @@ func getEventIds(ctx context.Context, body formatmessage.Webhook) ([]string, str
 	if err != nil {
 		return eventIDs, htmlURL, err
 	}
-	// look for the event id
-	// query the event api
-
-	// fmt.Printf("timeline: %v, %v", *timeline[len(timeline)-2].Event, *timeline[len(timeline)-2].ID)
-	// fmt.Printf("LastPage: %v", response.LastPage)
-	// fmt.Printf("NextPage: %v", response.NextPage)
-	// fmt.Printf("PrevPage: %v", response.PrevPage)
 	something := true
 
 	currentPage := response.LastPage
@@ -95,7 +88,7 @@ func getEventIds(ctx context.Context, body formatmessage.Webhook) ([]string, str
 
 		for i := len(timeline) - 1; i >= 0; i-- {
 			t := timeline[i]
-			// fmt.Printf("*t.Event: %v - *t.CreatedAt: %v -  *t.ID: %v\n", *t.Event, *t.CreatedAt, *t.ID)
+
 			if *t.Event == "review_requested" && *t.CreatedAt == body.UpdatedAt {
 				eventID = strconv.FormatInt(*t.ID, 10)
 				eventIDs = append(eventIDs, eventID)
