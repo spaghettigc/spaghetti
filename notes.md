@@ -126,3 +126,35 @@ Solution 2 - batching
  - group webhooks by their UpdatedAt to make only one request to ListIssueTimeline(), to figure out how many messages we need to send
  - we can limit the search of the issue timeline by restricting to the number of webhooks that have been grouped (e.g. with 2 reviewers on 2 teams, there's 3 webhooks, so at most attempt to find 3 event IDs we're interested in)
  We voted for solution 2
+
+# notes of 20/01/2022
+ Potential batching libs:
+ https://pkg.go.dev/gocloud.dev/pubsub/batcher#Options - woops ignore this cause it's inside of pubsub
+ https://github.com/MasterOfBinary/gobatch - 19 stars ehhh...
+ https://github.com/RashadAnsari/go-batch - 6 stars no thanks
+ https://github.com/cheggaaa/mb - 13 stars meeh...
+ https://pkg.go.dev/search?q=batch+process&m=package
+
+ Max number of webhooks = number of github GC teams
+
+Solution 1
+- More reliable for handling late webhooks and retried webhooks, though it's boring it's probably the right solution
+- We store the event id we pick, and updatedAt
+- Libraries we looked at:
+  -  https://github.com/eko/gocache
+Solution 2
+- Worst case: we may have related webhooks being distributed to different batches, therefore reselecting the same event ids and missing some event ids.
+To overcome this, we'll still need to have a stateful system, which defeats the purpose of going with solution 2.
+This may occur for delayed webhooks or retried webhooks
+
+https://go.dev/play/p/1Ghqr70Gw5
+
+1 webhook -> pull all related events -> store eventids -> send the slack message
+second webhook -> pull all related events -> stop here as we have seen the event ids
+
+We have successfully solved the issue of missing reviewers with solution 1.
+Next steps
+- code clean up: take the webhook, store in cache and complete HTTP handler so github doesn't think we timed out, separately fetch from cache then process
+- test once we have divided into smaller chunks
+- we may timeout github webhook as we keep it until we have processed everything
+- explore if cache access is threadsafe, else there's a possibility of two webhooks causing the same message to be sent multiple times
