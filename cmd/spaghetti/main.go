@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sort"
 	"spaghetti/pkg/formatmessage"
 	"spaghetti/pkg/postmessage"
 	"spaghetti/pkg/vcr"
@@ -15,7 +14,10 @@ import (
 
 	"os"
 
+	"github.com/allegro/bigcache"
 	"github.com/bradleyfalzon/ghinstallation"
+	"github.com/eko/gocache/cache"
+	"github.com/eko/gocache/store"
 	"github.com/google/go-github/github"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
@@ -59,28 +61,18 @@ func client(ctx context.Context) (*github.Client, error) {
 	return github.NewClient(&http.Client{Transport: itr}), nil
 }
 
-func main2() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	ctx := context.Background()
-
-	client(ctx)
-}
-
-func getEventId(ctx context.Context, body formatmessage.Webhook) (string, string, error) {
-	var eventID string
+func getEventIds(ctx context.Context, body formatmessage.Webhook) ([]string, string, error) {
+	var eventIDs []string
 	var htmlURL string
 	c, err := client(ctx)
 	if err != nil {
-		return eventID, htmlURL, err
+		return eventIDs, htmlURL, err
 	}
 
 	perPage := 100
 	_, response, err := c.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: 1, PerPage: perPage})
 	if err != nil {
-		return eventID, htmlURL, err
+		return eventIDs, htmlURL, err
 	}
 	// look for the event id
 	// query the event api
@@ -93,12 +85,12 @@ func getEventId(ctx context.Context, body formatmessage.Webhook) (string, string
 
 	currentPage := response.LastPage
 
-	var eventIDs []string
 	// TODO optimise because we're going through all the timeline pages, could pick out last 2 events instead
 	for something == true {
+		var eventID string
 		timeline, response, err := c.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: currentPage, PerPage: perPage})
 		if err != nil {
-			return eventID, htmlURL, err
+			return eventIDs, htmlURL, err
 		}
 
 		for i := len(timeline) - 1; i >= 0; i-- {
@@ -124,12 +116,11 @@ func getEventId(ctx context.Context, body formatmessage.Webhook) (string, string
 
 	pull, _, err := c.PullRequests.Get(ctx, body.Organization.Login, body.Repository.Name, body.Number)
 	if err != nil {
-		return eventID, htmlURL, err
+		return eventIDs, htmlURL, err
 	}
 	htmlURL = pull.GetHTMLURL()
 
-	sort.Strings(eventIDs)
-	return eventIDs[len(eventIDs)-1], htmlURL, nil
+	return eventIDs, htmlURL, nil
 }
 
 type Assigned struct {
@@ -147,6 +138,10 @@ func main() {
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 
 	ctx := context.Background()
+
+	bigcacheClient, _ := bigcache.NewBigCache(bigcache.DefaultConfig(5 * time.Minute))
+	bigcacheStore := store.NewBigcache(bigcacheClient, nil) // No options provided (as second argument
+	cacheManager := cache.New(bigcacheStore)
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 		var body formatmessage.Webhook
@@ -170,28 +165,50 @@ func main() {
 			fmt.Printf("[%s]: %s\n", now(), body.Action)
 
 			if body.Action == "review_requested" && (body.RequestedTeam.Name != "" || len(body.PullRequest.RequestedTeams) > 0) {
-				eventID, htmlURL, err := getEventId(ctx, body) // TODO rename getEventId
+				eventIDs, htmlURL, err := getEventIds(ctx, body) // TODO rename getEventId
 				if err != nil {
 					log.Fatalf("getEventId: %s", err)
 				}
-				h := fmt.Sprintf("%s#event-%s", htmlURL, eventID)
-				fmt.Printf("%s#event-%s", htmlURL, eventID)
 
-				assignees, err := formatmessage.GetAssignedReviewersAndTeam(eventID, h) // retunring zero assignees bug?
-				fmt.Printf("number of assignees: %d", len(assignees))
-				if err != nil {
-					log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
-				}
-				for _, assignee := range assignees {
+				// loop over event IDs
+				for _, eventID := range eventIDs {
+					// get cache
 
-					message := formatmessage.FormatMessage(body, assignee)
+					value, err := cacheManager.Get(eventID)
 
-					options := postmessage.PostMessageOptions{
-						Message:   message,
-						ChannelID: channelID,
+					if err != nil && err != bigcache.ErrEntryNotFound {
+						panic(err)
 					}
 
-					postmessage.PostMessage(slackAPI, options)
+					if value != nil {
+						fmt.Printf("skipped %s\n", eventID)
+						continue
+					}
+
+					err = cacheManager.Set(eventID, "not nil", nil)
+					if err != nil {
+						panic(err)
+					}
+
+					h := fmt.Sprintf("%s#event-%s", htmlURL, eventID)
+					fmt.Printf("%s#event-%s", htmlURL, eventID)
+
+					assignees, err := formatmessage.GetAssignedReviewersAndTeam(eventID, h) // retunring zero assignees bug?
+					fmt.Printf("number of assignees: %d", len(assignees))
+					if err != nil {
+						log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
+					}
+					for _, assignee := range assignees {
+
+						message := formatmessage.FormatMessage(body, assignee)
+
+						options := postmessage.PostMessageOptions{
+							Message:   message,
+							ChannelID: channelID,
+						}
+
+						postmessage.PostMessage(slackAPI, options)
+					}
 				}
 			}
 		}
