@@ -62,7 +62,7 @@ func GetAssignedReviewersAndTeam(eventID string, h string) ([]Assigned, error) {
 
 	// use headless browser
 	page := rod.New().MustConnect().MustPage(h)
-	time.Sleep(5 * time.Second) // TODO non timeout way to wait for client render
+	time.Sleep(1 * time.Second) // TODO non timeout way to wait for client render
 	// page.MustWaitLoad().MustScreenshot("a.png")
 
 	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
