@@ -124,7 +124,6 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook) ([]str
 
 	currentPage := response.LastPage
 
-	// TODO optimise because we're going through all the timeline pages, could pick out last 2 events instead
 	for something == true {
 		var eventID string
 		timeline, response, err := client.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: currentPage, PerPage: perPage})
