@@ -158,3 +158,19 @@ Next steps
 - test once we have divided into smaller chunks
 - we may timeout github webhook as we keep it until we have processed everything
 - explore if cache access is threadsafe, else there's a possibility of two webhooks causing the same message to be sent multiple times
+
+# notes of 27/01/2022
+
+- store PR URL as cache value and eventID as cache key
+
+https://github.com/eko/gocache#a-marshaler-wrapper - gocache has marshaller to wrap cacheManager for convenience if bigcache return values as a string
+
+We need to support request 1 team (without rota)
+e.g. "ThePesta requested a review from spaghettigc/betterspaghettiteam"
+- We have refactor the code and separated some logic (e.g. message, github)
+- We now make an async call to send the slack message
+- We need to validate if our refactoring is correct or not (working + right separation), how easy it is to write test for the current structure.
+- Add logging libraries, error handling, metrics, cli
+- explore if cache access is threadsafe, else there's a possibility of two webhooks causing the same message to be sent multiple times
+- Make our repo private and make an authenticated call to our PR to scrape the event ID
+- Early return if we found the eventIDs instead of waiting for 1s time.Sleep(1 * time.Second) - https://go-rod.github.io/#/selectors/README?id=race-selectors
