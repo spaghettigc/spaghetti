@@ -206,6 +206,7 @@ We created a new PR and tested our project against it, and it failed when trying
 We have implemented this solution and it worked.
 
 We are trying to support requesting a team only, without rota. We've noticed that rod currently only return `GitCecile requested a review from Feb 3, 2022`, without the team name. Turns out that the team name will be displayed only when authenticated. We had a closer look at the authentication on the browser, github reads a session token stored in the cookies, this means that we might not be able to use an access token and pass it in the header, we may need to authenticate at each request.
+It seems like rod only support username/password authentication at a first glance. https://pkg.go.dev/github.com/go-rod/rod@v0.101.8#Browser.HandleAuth
 
 https://docs.github.com/en/rest/guides/basics-of-authentication
 
