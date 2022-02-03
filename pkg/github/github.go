@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"spaghetti/pkg/message"
-	"spaghetti/pkg/vcr"
 	"strconv"
 	"time"
 
@@ -68,7 +67,7 @@ func NewClient(ctx context.Context, appID int64, installationID int64, privateKe
 func GetPREvents(ctx context.Context, client github.Client, req *http.Request) (eventIDs []string, msg message.Message, err error) {
 	var body Webhook
 
-	_, err = vcr.RequestHandler(req, body, "review-multiple-members"+now())
+	// _, err = vcr.RequestHandler(req, body, "review-multiple-members"+now())
 
 	if err != nil {
 		panic(err)
