@@ -141,8 +141,20 @@ func GetAssignedReviewersAndTeam(eventID string, h string) (assignees []Assigned
 	time.Sleep(1 * time.Second) // TODO non timeout way to wait for client render
 	// page.MustWaitLoad().MustScreenshot("a.png")
 
+	loaderElement := page.MustElement("#js-timeline-progressive-loader")
+	timelineFocusedItem, err := loaderElement.Attribute("data-timeline-item-src")
+	if err != nil {
+		return assignees, requester, err
+	}
+
+	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
+
+	newPage := rod.New().MustConnect().MustPage(newUrl)
+
+	fmt.Printf("newUrl: %v\n", newUrl)
+
 	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
-	el := page.MustElement(selector)
+	el := newPage.MustElement(selector)
 	text := el.MustText()
 
 	fmt.Printf("\neventID: %s, text: %s\n", eventID, text)

@@ -174,3 +174,33 @@ e.g. "ThePesta requested a review from spaghettigc/betterspaghettiteam"
 - explore if cache access is threadsafe, else there's a possibility of two webhooks causing the same message to be sent multiple times
 - Make our repo private and make an authenticated call to our PR to scrape the event ID
 - Early return if we found the eventIDs instead of waiting for 1s time.Sleep(1 * time.Second) - https://go-rod.github.io/#/selectors/README?id=race-selectors
+
+# notes of 03/02/2022
+https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfFpVwXABqjU0Mjc1ODgyNjc=&before_cursor=Y3Vyc29yOnYyOpPPAAABfptESjgBqjU5NjMwMDY3MDU=&id=PR_kwDOGB7j384scVH7&anchor=event-5603690621
+
+
+https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfr8voggBqjYwMDE4MDI1MTY%3D&id=PR_kwDOGB7j384yBHkV&anchor=event-6001802516
+
+spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfr8voggBqjYwMDE4MDI1MTY%3D&id=PR_kwDOGB7j384yBHkV
+
+
+#js-timeline-progressive-loader
+
+data-timeline-item-src="spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfr8voggBqjYwMDE4MDI1MTY%3D&id=PR_kwDOGB7j384yBHkV"
+
+https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfr9ETwABqjYwMDE5NDQ0MjA%3D&id=PR_kwDOGB7j384yBHkV&anchor=event-6001944400
+
+https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfr9ETwABqjYwMDE5NDQ0MjA%3D&id=PR_kwDOGB7j384yBHkV&anchor=event-6001944420
+
+https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfFpVwXABqjU0Mjc1ODgyNjc%3D&before_cursor=Y3Vyc29yOnYyOpPPAAABfptESjgBqjU5NjMwMDY3MDU%3D&id=PR_kwDOGB7j384scVH7&anchor=event-5427505920
+
+
+We created a new PR and tested our project against it, and it failed when trying to retrieve text displayed in the UI for particular event IDs. This is because the front end has some smart ass logic to not display hidden items if there isn't enough of them. We figured out a workaround by looking at the hidden items loader div, which makes a request to /timeline_focused_item with some cursor info alongside the event ID. We have no clue how to reverse engineer the cursor information, but since it's already available on the div with id `js-timeline-progressive-loader`, we can just rebuild the request that would of been made if there was enough timeline items that are hidden. We tested this and it seems to work fine.
+1. Find the event ids
+2. Visit the event id page
+3. Find div id `js-timeline-progressive-loader`
+4. Grab the `data-timeline-item-src`
+5. Make a request to `https://github.com/` + `{data-timeline-item-src}` + `&anchor=event-` + `{eventId}`
+6. Continue as usual
+
+We have implemented this solution and it worked.
