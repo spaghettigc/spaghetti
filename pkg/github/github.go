@@ -147,7 +147,6 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook) ([]str
 		fmt.Printf("pagenumber: %v\n", currentPage)
 		if currentPage == 0 {
 			something = false
-			fmt.Println("NOT FOUND")
 
 		}
 	}
