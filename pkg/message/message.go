@@ -2,7 +2,9 @@ package message
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -148,10 +150,30 @@ func GetAssignedReviewersAndTeam(eventID string, h string) (assignees []Assigned
 	}
 
 	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
+	fmt.Printf("newUrl: %v\n", newUrl)
+
+	// Print the html
+	res, err := http.Get(newUrl)
+	if err != nil {
+		return assignees, requester, err
+	}
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return assignees, requester, err
+	}
+	fmt.Printf("string b: %s\n", string(b))
 
 	newPage := rod.New().MustConnect().MustPage(newUrl)
+	// htmlString, err := newPage.HTML()
+	// fmt.Printf("htmlString: %s\n", htmlString)
 
-	fmt.Printf("newUrl: %v\n", newUrl)
+	requestedAReviewFrom := newPage.MustElement("a[data-hovercard-type] > span") // This doesn't work as without authentication, the span doesn't appear
+	requestedAReviewFromText := requestedAReviewFrom.MustText()
+	fmt.Printf("requestedAReviewFromText: %s\n", requestedAReviewFromText)
+
+	hoverType, err := requestedAReviewFrom.MustParent().Attribute("data-hovercard-type")
+	fmt.Printf("hoverType: %s\n", *hoverType)
 
 	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
 	el := newPage.MustElement(selector)

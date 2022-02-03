@@ -204,3 +204,12 @@ We created a new PR and tested our project against it, and it failed when trying
 6. Continue as usual
 
 We have implemented this solution and it worked.
+
+We are trying to support requesting a team only, without rota. We've noticed that rod currently only return `GitCecile requested a review from Feb 3, 2022`, without the team name. Turns out that the team name will be displayed only when authenticated. We had a closer look at the authentication on the browser, github reads a session token stored in the cookies, this means that we might not be able to use an access token and pass it in the header, we may need to authenticate at each request.
+
+https://docs.github.com/en/rest/guides/basics-of-authentication
+
+We had the idea of using `data-hovercard-type` to distinguish between a team being requested without rota and a team being requested with rota, however it seems like this is also used for the requester, we'll always get `data-hovercard-type="user"` as a user has requested a review.
+data-hovercard-type="team"
+data-hovercard-type="user"
+
