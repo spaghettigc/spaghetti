@@ -225,3 +225,8 @@ We have decided to log in to github via the headless browser, maintain the sessi
 
 So we are now able to process review request for a team without rota, however, we need to work on the regex to parse the message correctly (no slack message).
 Another question will be, how to distinguish different types of requests.
+
+We have triggered 2 different types of requests (with/without rota) and it works, we have visited the right timeline focused items.
+
+[] Add regex for request review from 1 team without rota (will Jason and Cecile remember what to do after this step?)
+[] Review the console prints `fmt.Printf`, we should be using real loggings
