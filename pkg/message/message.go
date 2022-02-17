@@ -2,9 +2,7 @@ package message
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -25,7 +23,7 @@ type SlackOptions struct {
 	ChannelID string
 }
 
-func PostMessage(marshal *marshaler.Marshaler, slackAPI *slack.Client, channelID string, eventID string) {
+func PostMessage(browser *rod.Browser, marshal *marshaler.Marshaler, slackAPI *slack.Client, channelID string, eventID string) {
 	value, err := marshal.Get(eventID, new(Message))
 	if err != nil {
 		panic(err)
@@ -34,7 +32,7 @@ func PostMessage(marshal *marshaler.Marshaler, slackAPI *slack.Client, channelID
 	h := fmt.Sprintf("%s#event-%s", v.URL, eventID)
 	fmt.Printf("%s#event-%s", v.URL, eventID)
 
-	assignees, requester, err := GetAssignedReviewersAndTeam(eventID, h) // retunring zero assignees bug?
+	assignees, requester, err := GetAssignedReviewersAndTeam(browser, eventID, h) // retunring zero assignees bug?
 	fmt.Printf("number of assignees: %d", len(assignees))
 	if err != nil {
 		log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
@@ -129,7 +127,7 @@ func Truncate(text string) string {
 }
 
 // TODO rename this to include requester
-func GetAssignedReviewersAndTeam(eventID string, h string) (assignees []Assigned, requester string, err error) {
+func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string) (assignees []Assigned, requester string, err error) {
 	// assignees := make([]Assigned, 0)
 
 	// b, err := ioutil.ReadAll(resp.Body)
@@ -139,7 +137,7 @@ func GetAssignedReviewersAndTeam(eventID string, h string) (assignees []Assigned
 	// err = ioutil.WriteFile(fmt.Sprintf("recording/%s.html", "boop"), b, 0644)
 
 	// use headless browser
-	page := rod.New().MustConnect().MustPage(h)
+	page := browser.MustPage(h)
 	time.Sleep(1 * time.Second) // TODO non timeout way to wait for client render
 	// page.MustWaitLoad().MustScreenshot("a.png")
 
@@ -152,19 +150,7 @@ func GetAssignedReviewersAndTeam(eventID string, h string) (assignees []Assigned
 	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
 	fmt.Printf("newUrl: %v\n", newUrl)
 
-	// Print the html
-	res, err := http.Get(newUrl)
-	if err != nil {
-		return assignees, requester, err
-	}
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return assignees, requester, err
-	}
-	fmt.Printf("string b: %s\n", string(b))
-
-	newPage := rod.New().MustConnect().MustPage(newUrl)
+	newPage := browser.MustPage(newUrl)
 	// htmlString, err := newPage.HTML()
 	// fmt.Printf("htmlString: %s\n", htmlString)
 

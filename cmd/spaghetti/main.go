@@ -16,9 +16,25 @@ import (
 	"github.com/eko/gocache/cache"
 	"github.com/eko/gocache/marshaler"
 	"github.com/eko/gocache/store"
+	"github.com/go-rod/rod"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 )
+
+// TODO error handling if we're stuck/can't load the page
+func login(browser *rod.Browser, username string, password string) *rod.Browser {
+	url := "https://github.com/login"
+	page := browser.MustPage(url)
+
+	page.MustElement("#login_field").MustInput(username)
+	page.MustElement("#password").MustInput(password)
+	time.Sleep(2 * time.Second)
+	// page.MustScreenshot("before pressing.png")
+	page.MustElement("#login > div.auth-form-body.mt-3 > form > div > input.btn.btn-primary.btn-block.js-sign-in-button").MustClick()
+	time.Sleep(2 * time.Second)
+	// page.MustScreenshot("login.png")
+	return browser
+}
 
 func main() {
 	err := godotenv.Load()
@@ -49,6 +65,12 @@ func main() {
 		panic("GH client error")
 	}
 
+	username := os.Getenv("GITHUB_NAME")
+	password := os.Getenv("GITHUB_PWD")
+
+	browser := rod.New().MustConnect()
+	browser = login(browser, username, password)
+
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 
 		eventIDs, msg, err := gh.GetPREvents(ctx, *githubClient, req)
@@ -74,7 +96,7 @@ func main() {
 				panic(err)
 			}
 
-			go message.PostMessage(marshal, slackAPI, channelID, eventID)
+			go message.PostMessage(browser, marshal, slackAPI, channelID, eventID)
 		}
 
 	})
