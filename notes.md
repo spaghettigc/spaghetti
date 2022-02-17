@@ -214,3 +214,14 @@ We had the idea of using `data-hovercard-type` to distinguish between a team bei
 data-hovercard-type="team"
 data-hovercard-type="user"
 
+# notes of 17/02/2022
+https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
+https://github.com/google/go-github/blob/v17.0.0/github/github.go#L300
+
+We tried using JWT token shenanigans to access /timeline_focused_item endpoint, but it doesn't work as we discovered it uses a user session cookie, we're going to use the normal GH login from a web browser.
+
+We checked the peak PR created per hour with look https://looker.gocardless.io/sql/t4qk2822bvttqn, at most was ~200 an hour. Github has a user to server rate limit of 5k requests/h, so we should be fine for a long time, given that we're assuming one PR = one team request, which is one if there's no github rota, two if they have a rota.
+We have decided to log in to github via the headless browser, maintain the session and visit the timeline focused item page, this solution works.
+
+So we are now able to process review request for a team without rota, however, we need to work on the regex to parse the message correctly (no slack message).
+Another question will be, how to distinguish different types of requests.
