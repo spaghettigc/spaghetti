@@ -228,5 +228,22 @@ Another question will be, how to distinguish different types of requests.
 
 We have triggered 2 different types of requests (with/without rota) and it works, we have visited the right timeline focused items.
 
-[] Add regex for request review from 1 team without rota (will Jason and Cecile remember what to do after this step?)
+[] Add regex for request review from 1 team without rota 
 [] Review the console prints `fmt.Printf`, we should be using real loggings
+
+# notes of 24/02/2022
+We want to support request review from team with rota only for now, we prefer to productionise first over adding new features (e.g. support request review from 1 team without rota)
+[] Review the console prints `fmt.Printf`, we should be using real loggings
+[] Error handling cause we're panic()-ing everywhere
+- We need to validate if our refactoring is correct or not (working + right separation), how easy it is to write test for the current structure.
+- Add logging libraries(github.com/uber-go/zap), error handling, metrics, cli
+- explore if cache access is threadsafe, else there's a possibility of two webhooks causing the same message to be sent multiple times
+- Make our repo private and make an authenticated call to our PR to scrape the event ID
+- Dockerize
+- Deploy to Heroku/Consider making it a utopia app now
+- Add a readme with setup instructions (which account should devs use for headless browser github login?)
+
+
+https://github.com/gocardless/cookiecutter-georges/pull/26 - Switch in Georges cookie cutter logging from zerolog to zap https://gocardless.slack.com/archives/C03H92E3B/p1637674549024000?thread_ts=1631114597.052900&cid=C03H92E3B
+
+https://github.com/gocardless/cookiecutter-georges/pull/26/files?file-filters%5B%5D=.go&show-viewed-files=true#diff-e23226f59a690fb97dce9ec4d14fb268e41b01e529f1b77eec2a3abb014ba00fR81
