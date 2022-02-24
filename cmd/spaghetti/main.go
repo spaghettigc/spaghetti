@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	gh "spaghetti/pkg/github"
@@ -19,6 +18,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
+	"go.uber.org/zap"
 )
 
 // TODO error handling if we're stuck/can't load the page
@@ -42,50 +42,79 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	// Logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("can't initialize zap logger: %v", err)
+	}
+	defer logger.Sync()
+
 	ctx := context.Background()
 
+	// slack
 	slackAPI := slack.New(os.Getenv("SLACK_TOKEN"))
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
 	appID, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
 	if err != nil {
-		panic(err)
+		logger.Fatal("failed to parse app ID",
+			zap.String("appID", os.Getenv("APP_ID")),
+		)
 	}
 	installationID, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
 	if err != nil {
-		panic(err)
+		logger.Fatal("failed to parse installation ID",
+			zap.String("appID", os.Getenv("INSTALLATION_ID")),
+		)
 	}
 	privateKeyFile := os.Getenv("PRIVATE_KEY_FILE")
 
-	bigcacheClient, _ := bigcache.NewBigCache(bigcache.DefaultConfig(5 * time.Minute))
-	bigcacheStore := store.NewBigcache(bigcacheClient, nil) // No options provided (as second argument
+	// cache
+	bigcacheClient, err := bigcache.NewBigCache(bigcache.DefaultConfig(5 * time.Minute))
+	if err != nil {
+		logger.Fatal("failed to initialise bigcache client",
+			zap.Error(err),
+		)
+	}
+	bigcacheStore := store.NewBigcache(bigcacheClient, nil)
 	cacheManager := cache.New(bigcacheStore)
 
-	githubClient, err := gh.NewClient(ctx, appID, installationID, privateKeyFile)
-	if err != nil {
-		panic("GH client error")
-	}
-
+	// github
 	username := os.Getenv("GITHUB_NAME")
 	password := os.Getenv("GITHUB_PWD")
+	githubClient, err := gh.NewClient(ctx, appID, installationID, privateKeyFile)
+	if err != nil {
+		logger.Fatal("failed to initialise github client",
+			zap.Error(err),
+		)
+	}
 
+	// headless browser
 	browser := rod.New().MustConnect()
+	// TODO what happens if we got logged out?
 	browser = login(browser, username, password)
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 
 		eventIDs, msg, err := gh.GetPREvents(ctx, *githubClient, req)
 		if err != nil {
-			panic("GH client error")
+			logger.Info("failed to get the pr events",
+				zap.Error(err),
+			)
 		}
 		for _, eventID := range eventIDs {
 			value, err := cacheManager.Get(eventID)
 
 			if err != nil && err != bigcache.ErrEntryNotFound {
-				panic(err)
+				logger.Info("failed to get event ID from cache",
+					zap.Error(err),
+					zap.String("event_id", eventID),
+				)
 			}
 
 			if value != nil {
-				fmt.Printf("skipped %s\n", eventID)
+				logger.Info("skipped the event ID as it's already in cache",
+					zap.String("event_id", eventID),
+				)
 				continue
 			}
 
@@ -93,17 +122,28 @@ func main() {
 
 			err = marshal.Set(eventID, msg, nil)
 			if err != nil {
-				panic(err)
+				logger.Info("failed to marshal event ID",
+					zap.Error(err),
+					zap.String("event_id", eventID),
+				)
 			}
 
+			// TODO what happens if postmessage fails?
+			// we want to replace this
 			go message.PostMessage(browser, marshal, slackAPI, channelID, eventID)
 		}
 
 	})
 
-	fmt.Printf("started serving")
+	logger.Info("started serving",
+		zap.String("host", "localhost"),
+		zap.Int("port", 3000),
+	)
+	// TODO configure host/port from env var/cli
 	err = http.ListenAndServe("localhost:3000", nil)
 	if err != nil {
-		log.Fatalf("http server: %s", err)
+		logger.Fatal("failed to server",
+			zap.Error(err),
+		)
 	}
 }
