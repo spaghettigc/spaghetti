@@ -95,9 +95,9 @@ func main() {
 
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 
-		eventIDs, msg, err := gh.GetPREvents(ctx, *githubClient, req)
+		eventIDs, msg, err := gh.GetPREvents(ctx, *githubClient, logger, req)
 		if err != nil {
-			logger.Info("failed to get the pr events",
+			logger.Error("failed to get the pr events",
 				zap.Error(err),
 			)
 		}
@@ -105,7 +105,7 @@ func main() {
 			value, err := cacheManager.Get(eventID)
 
 			if err != nil && err != bigcache.ErrEntryNotFound {
-				logger.Info("failed to get event ID from cache",
+				logger.Error("failed to get event ID from cache",
 					zap.Error(err),
 					zap.String("event_id", eventID),
 				)
@@ -122,15 +122,24 @@ func main() {
 
 			err = marshal.Set(eventID, msg, nil)
 			if err != nil {
-				logger.Info("failed to marshal event ID",
+				logger.Error("failed to marshal event ID",
 					zap.Error(err),
 					zap.String("event_id", eventID),
 				)
 			}
 
+			opt := message.PostMessageOptions{
+				EventID:     eventID,
+				ChannelID:   channelID,
+				Logger:      logger,
+				Browser:     browser,
+				Marshal:     marshal,
+				SlackClient: slackAPI,
+			}
+
 			// TODO what happens if postmessage fails?
 			// we want to replace this
-			go message.PostMessage(browser, marshal, slackAPI, channelID, eventID)
+			go message.PostMessage(opt)
 		}
 
 	})

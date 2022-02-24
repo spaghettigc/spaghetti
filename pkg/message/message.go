@@ -2,7 +2,6 @@ package message
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/eko/gocache/marshaler"
 	"github.com/go-rod/rod"
 	"github.com/slack-go/slack"
+	"go.uber.org/zap"
 )
 
 type Message struct {
@@ -23,31 +23,61 @@ type SlackOptions struct {
 	ChannelID string
 }
 
-func PostMessage(browser *rod.Browser, marshal *marshaler.Marshaler, slackAPI *slack.Client, channelID string, eventID string) {
-	value, err := marshal.Get(eventID, new(Message))
-	if err != nil {
-		panic(err)
-	}
-	v := value.(*Message)
-	h := fmt.Sprintf("%s#event-%s", v.URL, eventID)
-	fmt.Printf("%s#event-%s", v.URL, eventID)
+type PostMessageOptions struct {
+	EventID     string
+	ChannelID   string
+	Logger      *zap.Logger
+	Browser     *rod.Browser
+	Marshal     *marshaler.Marshaler
+	SlackClient *slack.Client
+}
 
-	assignees, requester, err := GetAssignedReviewersAndTeam(browser, eventID, h) // retunring zero assignees bug?
-	fmt.Printf("number of assignees: %d", len(assignees))
+func PostMessage(options PostMessageOptions) error {
+	cacheValue, err := options.Marshal.Get(options.EventID, new(Message))
+	logger := options.Logger
+
 	if err != nil {
-		log.Fatalf("GetAssignedReviewersAndTeam: %s", err)
+		logger.Error("failed to get event ID from cache",
+			zap.Error(err),
+			zap.String("event_id", options.EventID),
+		)
+
+		return err
 	}
+	message := cacheValue.(*Message)
+	url := fmt.Sprintf("%s#event-%s", message.URL, options.EventID)
+	assignees, requester, err := GetAssignedReviewersAndTeam(options.Browser, options.EventID, url) // retunring zero assignees bug?
+	if err != nil {
+		logger.Error("failed to get assigned reviewers and team",
+			zap.Error(err),
+			zap.String("event_id", options.EventID),
+			zap.String("url", message.URL),
+			zap.String("full_url", url),
+		)
+
+		return err
+	}
+
+	logger.Info("identified assignees",
+		zap.Int("assignee_count", len(assignees)),
+		zap.String("event_id", options.EventID),
+		zap.String("url", message.URL),
+		zap.String("full_url", url),
+	)
+
 	for _, assignee := range assignees {
 
-		message := FormatMessage(v.URL, v.Title, v.Body, assignee, requester)
+		slackMessage := FormatMessage(message.URL, message.Title, message.Body, assignee, requester)
 
-		options := SlackOptions{
-			Message:   message,
-			ChannelID: channelID,
+		slackOptions := SlackOptions{
+			Message:   slackMessage,
+			ChannelID: options.ChannelID,
 		}
 
-		post(slackAPI, options)
+		post(options.SlackClient, slackOptions)
 	}
+
+	return nil
 }
 
 func post(client *slack.Client, options SlackOptions) {
@@ -56,6 +86,7 @@ func post(client *slack.Client, options SlackOptions) {
 	channelID, timestamp, err := client.PostMessage(options.ChannelID, msg)
 	if err != nil {
 		fmt.Printf("PostMessageErr: %s\n", err)
+		// TODO return error
 		return
 	}
 	fmt.Printf("channelID: %s, timestamp: %s", channelID, timestamp)

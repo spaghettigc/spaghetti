@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"spaghetti/pkg/message"
 	"strconv"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type PullRequest struct {
@@ -64,41 +65,59 @@ func NewClient(ctx context.Context, appID int64, installationID int64, privateKe
 	return github.NewClient(&http.Client{Transport: itr}), nil
 }
 
-func GetPREvents(ctx context.Context, client github.Client, req *http.Request) (eventIDs []string, msg message.Message, err error) {
+func GetPREvents(ctx context.Context, client github.Client, logger *zap.Logger, req *http.Request) (eventIDs []string, msg message.Message, err error) {
 	var body Webhook
 
-	// _, err = vcr.RequestHandler(req, body, "review-multiple-members"+now())
+	event := req.Header.Get("X-GitHub-Event")
+	deliveryID := req.Header.Get("X-GitHub-Delivery")
 
-	if err != nil {
-		panic(err)
+	logFields := []zapcore.Field{
+		zap.String("delivery_id", deliveryID),
+		zap.String("event", event),
+		zap.Int("number", body.Number),
+		zap.String("repo", body.Repository.Name),
 	}
 
-	event := req.Header.Get("X-GitHub-Event")
-
 	if event != "pull_request" {
+		logger.Info("Skipped event",
+			append(logFields,
+				zap.String("event", "github.event_type.skipped"),
+			)...)
+
 		return eventIDs, msg, nil
 	}
 
 	err = json.NewDecoder(req.Body).Decode(&body)
 	if err != nil {
-		log.Fatalf("json decode: %s", err)
-		return eventIDs, msg, nil
+		return eventIDs, msg, fmt.Errorf("failed to json decode request body: %w", err)
 	}
 
-	fmt.Printf("[%s]: %s\n", now(), body.Action)
-
 	if body.Action != "review_requested" {
+		logger.Info("Skipped event: unsupported event action",
+			append(logFields,
+				zap.String("event", "github.event_action.skipped"),
+				zap.String("body_action", body.Action),
+			)...)
 		return eventIDs, msg, nil
 	}
 
 	if body.RequestedTeam.Name == "" && len(body.PullRequest.RequestedTeams) == 0 {
-		fmt.Println("team name empty")
+		logger.Info("Skipped event: team name missing",
+			append(logFields,
+				zap.String("event", "github.event_action.skipped"),
+			)...)
 		return eventIDs, msg, nil
 	}
 
+	logger.Info("Event action",
+		append(logFields,
+			zap.String("event", "github.event_action.found"),
+			zap.String("body_action", body.Action),
+		)...)
+
 	eventIDs, htmlURL, err := getEventIds(ctx, client, body)
 	if err != nil {
-		log.Fatalf("getEventId: %s", err)
+		return eventIDs, msg, fmt.Errorf("failed to get event IDs: %w", err)
 	}
 
 	msg = message.Message{
