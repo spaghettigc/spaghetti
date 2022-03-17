@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	gh "spaghetti/pkg/github"
+	"spaghetti/pkg/lookup"
 	"spaghetti/pkg/message"
 	"strconv"
 	"time"
@@ -77,6 +78,7 @@ func main() {
 	}
 	bigcacheStore := store.NewBigcache(bigcacheClient, nil)
 	cacheManager := cache.New(bigcacheStore)
+	marshal := marshaler.New(cacheManager)
 
 	// github
 	username := os.Getenv("GITHUB_NAME")
@@ -101,33 +103,10 @@ func main() {
 				zap.Error(err),
 			)
 		}
-		for _, eventID := range eventIDs {
-			value, err := cacheManager.Get(eventID)
 
-			if err != nil && err != bigcache.ErrEntryNotFound {
-				logger.Error("failed to get event ID from cache",
-					zap.Error(err),
-					zap.String("event_id", eventID),
-				)
-			}
+		unSeenEventIds := lookup.ExcludeSeenEvents(logger, cacheManager, marshal, eventIDs, msg)
 
-			if value != nil {
-				logger.Info("skipped the event ID as it's already in cache",
-					zap.String("event_id", eventID),
-				)
-				continue
-			}
-
-			marshal := marshaler.New(cacheManager)
-
-			err = marshal.Set(eventID, msg, nil)
-			if err != nil {
-				logger.Error("failed to marshal event ID",
-					zap.Error(err),
-					zap.String("event_id", eventID),
-				)
-			}
-
+		for _, eventID := range unSeenEventIds {
 			opt := message.PostMessageOptions{
 				EventID:     eventID,
 				ChannelID:   channelID,
