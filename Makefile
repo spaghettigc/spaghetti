@@ -5,3 +5,6 @@ run:
 	./bin/main
 test:
 	gotest ./...
+
+install:
+	go mod tidy
