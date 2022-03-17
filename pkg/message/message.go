@@ -11,6 +11,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/slack-go/slack"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Message struct {
@@ -46,7 +47,7 @@ func PostMessage(options PostMessageOptions) error {
 	}
 	message := cacheValue.(*Message)
 	url := fmt.Sprintf("%s#event-%s", message.URL, options.EventID)
-	assignees, requester, err := GetAssignedReviewersAndTeam(options.Browser, options.EventID, url) // retunring zero assignees bug?
+	assignees, requester, err := GetAssignedReviewersAndTeam(options.Browser, options.EventID, url, options.Logger) // retunring zero assignees bug?
 	if err != nil {
 		logger.Error("failed to get assigned reviewers and team",
 			zap.Error(err),
@@ -74,22 +75,46 @@ func PostMessage(options PostMessageOptions) error {
 			ChannelID: options.ChannelID,
 		}
 
-		post(options.SlackClient, slackOptions)
+		post(options.SlackClient, slackOptions, logger)
 	}
 
 	return nil
 }
 
-func post(client *slack.Client, options SlackOptions) {
+func post(client *slack.Client, options SlackOptions, logger *zap.Logger) {
 	msg := slack.MsgOptionText(options.Message, false)
 
-	channelID, timestamp, err := client.PostMessage(options.ChannelID, msg)
+	logFields := []zapcore.Field{
+		zap.String("channel_id", options.ChannelID),
+		zap.String("msg_string", options.Message),
+	}
+
+	logger.Info("Attempting to post slack message",
+		append(logFields,
+			zap.String("event", "slack_message.post_started"),
+		)...,
+	)
+	_, timestamp, err := client.PostMessage(options.ChannelID, msg)
+
 	if err != nil {
-		fmt.Printf("PostMessageErr: %s\n", err)
+		logger.Error("Failed to post slack message",
+			append(logFields,
+				zap.Error(err),
+				zap.String("event", "slack_message.post_finished"),
+				zap.String("outcome", "error"),
+			)...,
+		)
 		// TODO return error
 		return
 	}
-	fmt.Printf("channelID: %s, timestamp: %s", channelID, timestamp)
+
+	logger.Info("Successfully posted slack message",
+		append(logFields,
+			zap.String("event", "slack_message.post_finished"),
+			zap.String("outcome", "success"),
+			zap.String("slack_timestamp", timestamp),
+		)...,
+	)
 }
 
 type Assigned struct {
@@ -158,7 +183,7 @@ func Truncate(text string) string {
 }
 
 // TODO rename this to include requester
-func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string) (assignees []Assigned, requester string, err error) {
+func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string, logger *zap.Logger) (assignees []Assigned, requester string, err error) {
 	// assignees := make([]Assigned, 0)
 
 	// b, err := ioutil.ReadAll(resp.Body)
@@ -179,24 +204,60 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string)
 	}
 
 	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
-	fmt.Printf("newUrl: %v\n", newUrl)
+
+	logger.Info("Visiting github url",
+		zap.String("event", "page_visit.started"),
+		zap.String("url", newUrl),
+	)
 
 	newPage := browser.MustPage(newUrl)
+
+	logger.Info("Finished visiting github url",
+		zap.String("event", "page_visit.finished"),
+		zap.String("url", newUrl),
+	)
 	// htmlString, err := newPage.HTML()
 	// fmt.Printf("htmlString: %s\n", htmlString)
 
+	logger.Info("Searching for requested reviewer text",
+		zap.String("event", "requested_reviewer.search_started"),
+	)
 	requestedAReviewFrom := newPage.MustElement("a[data-hovercard-type] > span") // This doesn't work as without authentication, the span doesn't appear
 	requestedAReviewFromText := requestedAReviewFrom.MustText()
-	fmt.Printf("requestedAReviewFromText: %s\n", requestedAReviewFromText)
+
+	logger.Info("Finished searching for requested reviewer text",
+		zap.String("event", "requested_reviewer.search_finished"),
+		zap.String("text", requestedAReviewFromText),
+	)
+
+	logger.Info("Finding hovercard type",
+		zap.String("event", "hovercard_type.search_started"),
+	)
 
 	hoverType, err := requestedAReviewFrom.MustParent().Attribute("data-hovercard-type")
-	fmt.Printf("hoverType: %s\n", *hoverType)
+
+	logger.Info("Finished finding hovercard type text",
+		zap.String("event", "hovercard_type.search_finished"),
+		zap.String("text", *hoverType),
+	)
 
 	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
+
+	logger.Info("Finding timeline item text",
+		zap.String("event", "timeline_item.search_started"),
+		zap.String("selector", selector),
+		zap.String("event_id", eventID),
+	)
+
 	el := newPage.MustElement(selector)
 	text := el.MustText()
 
-	fmt.Printf("\neventID: %s, text: %s\n", eventID, text)
+	logger.Info("Finding timeline item text",
+		zap.String("event", "timeline_item.search_finished"),
+		zap.String("selector", selector),
+		zap.String("event_id", eventID),
+		zap.String("text", text),
+	)
 
 	r, _ := regexp.Compile(`(?P<requester>.+) requested a review from (?P<reviewer>.+) \(assigned from (?P<team>.+)\)`)
 	for _, txtArr := range r.FindAllStringSubmatch(text, -1) {

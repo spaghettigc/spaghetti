@@ -115,7 +115,7 @@ func GetPREvents(ctx context.Context, client github.Client, logger *zap.Logger, 
 			zap.String("body_action", body.Action),
 		)...)
 
-	eventIDs, htmlURL, err := getEventIds(ctx, client, body)
+	eventIDs, htmlURL, err := getEventIds(ctx, client, body, logger)
 	if err != nil {
 		return eventIDs, msg, fmt.Errorf("failed to get event IDs: %w", err)
 	}
@@ -129,21 +129,40 @@ func GetPREvents(ctx context.Context, client github.Client, logger *zap.Logger, 
 	return eventIDs, msg, nil
 }
 
-func getEventIds(ctx context.Context, client github.Client, body Webhook) ([]string, string, error) {
+func getEventIds(ctx context.Context, client github.Client, body Webhook, logger *zap.Logger) ([]string, string, error) {
 	var eventIDs []string
 	var htmlURL string
 
 	perPage := 100
+
+	logger.Info("Finding total pages",
+		zap.Int("page_size", perPage),
+		zap.String("event", "pages_size.search_started"))
+
 	_, response, err := client.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: 1, PerPage: perPage})
 	if err != nil {
 		return eventIDs, htmlURL, err
 	}
 	something := true
 
-	currentPage := response.LastPage
+	totalPages := response.LastPage
+	currentPage := totalPages
+	logger.Info("Found total page",
+		zap.Int("pages_total", totalPages),
+		zap.Int("page_size", perPage),
+		zap.String("event", "pages_size.search_finished"))
 
-	for something == true {
+	logger.Info("All pages pagination scan started",
+		zap.Int("page_size", perPage),
+		zap.Int("pages_total", totalPages),
+		zap.String("event", "all_pages.scan_start"))
+
+	for something == true { // TODO should this be checking currentPage != 0
 		var eventID string
+		logger.Info("Page pagination scan started",
+			zap.Int("page_number", currentPage),
+			zap.Int("page_size", perPage),
+			zap.String("event", "page.scan_start"))
 		timeline, response, err := client.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: currentPage, PerPage: perPage})
 		if err != nil {
 			return eventIDs, htmlURL, err
@@ -156,17 +175,31 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook) ([]str
 				eventID = strconv.FormatInt(*t.ID, 10)
 				eventIDs = append(eventIDs, eventID)
 				something = false
-				fmt.Printf("eventID: %v\n", eventID)
-
+				logger.Info("Found event ID",
+					zap.String("event_id", eventID),
+					zap.Int("page_number", currentPage),
+					zap.Int("page_size", perPage),
+					zap.String("event", "event_id.found"))
 			}
 
 		}
-		currentPage = response.PrevPage
-		fmt.Printf("pagenumber: %v\n", currentPage)
-		if currentPage == 0 {
-			something = false
 
+		logger.Info("Page pagination scan started",
+			zap.Int("page_number", currentPage),
+			zap.Int("page_size", perPage),
+			zap.Int("timeline_events_count", len(timeline)),
+			zap.String("event", "page.scan_finished"))
+
+		currentPage = response.PrevPage
+
+		if currentPage == 0 {
+			logger.Info("All pages pagination scan completed",
+				zap.String("event", "all_pages.scan_finished"),
+				zap.Int("pages_total", totalPages),
+				zap.Int("page_size", perPage))
 		}
+		something = false
+
 	}
 
 	pull, _, err := client.PullRequests.Get(ctx, body.Organization.Login, body.Repository.Name, body.Number)
