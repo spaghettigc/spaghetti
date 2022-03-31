@@ -252,13 +252,28 @@ https://github.com/gocardless/cookiecutter-georges/pull/26/files?file-filters%5B
 - After turning on private repo, we can't request teams anymore https://github.com/pricing
 - We want to productionise first
   - [x]logging - Jason
-  - makefile
+  - [x] makefile
   - [x]readme setup - Cecile -> Initiated a readme that needs to be refined
-  - error handling
-  - tests
+  - [] error handling
+  - [] tests
 - Deploy to Heroku
 - Dockerize
 - Make the repo private
 - Move to utopia
 
 https://go-rod.github.io/#/context-and-timeout?id=cancellation
+
+# notes of 31/03/2022
+
+- Add golangci-lint later
+https://github.com/gocardless/billing/blob/attempt-1/cmd/billing/main.go
+https://github.com/gocardless/billing/pull/80
+https://github.com/gocardless/cookiecutter-georges/blob/aa3a499cf46584091d2296b88295cec94a271b3b/cmd/app/main.go#L122\]
+https://docs.sentry.io/product/sentry-basics/integrate-frontend/create-new-project/
+https://github.com/gocardless/dispatcher/search?q=captureException
+https://blog.sentry.io/2019/08/15/introducing-sentrys-unified-go-sdk#capturing-errors
+
+- We added sentry for error handling but the error stack trace is not working properly.
+https://blog.sentry.io/2019/08/15/introducing-sentrys-unified-go-sdk#capturing-errors We tried this example and it works but the stack doesn't show up for our own main function.
+
+
