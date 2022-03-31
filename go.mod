@@ -6,9 +6,11 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/eko/gocache v1.2.0
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-rod/rod v0.101.8
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/joho/godotenv v1.3.0
+	github.com/pkg/errors v0.9.1
 	github.com/slack-go/slack v0.9.5
 	go.uber.org/zap v1.13.0
 )
@@ -30,7 +32,6 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/pegasus-kv/thrift v0.13.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.10.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.18.0 // indirect
@@ -47,11 +48,11 @@ require (
 	go.uber.org/atomic v1.5.0 // indirect
 	go.uber.org/multierr v1.3.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
 	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	golang.org/x/net v0.0.0-20211008194852-3b03d305991f // indirect
+	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
 	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
