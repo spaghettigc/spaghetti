@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/eko/gocache/marshaler"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-rod/rod"
+	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -43,7 +45,7 @@ func PostMessage(options PostMessageOptions) error {
 			zap.String("event_id", options.EventID),
 		)
 
-		return err
+		return errors.Wrap(err, "failed to get event ID from cache")
 	}
 	message := cacheValue.(*Message)
 	url := fmt.Sprintf("%s#event-%s", message.URL, options.EventID)
@@ -56,7 +58,7 @@ func PostMessage(options PostMessageOptions) error {
 			zap.String("full_url", url),
 		)
 
-		return err
+		return errors.Wrap(err, "failed to get assigned reviewers and team")
 	}
 
 	logger.Info("identified assignees",
@@ -75,13 +77,13 @@ func PostMessage(options PostMessageOptions) error {
 			ChannelID: options.ChannelID,
 		}
 
-		post(options.SlackClient, slackOptions, logger)
+		err = post(options.SlackClient, slackOptions, logger)
 	}
 
 	return nil
 }
 
-func post(client *slack.Client, options SlackOptions, logger *zap.Logger) {
+func post(client *slack.Client, options SlackOptions, logger *zap.Logger) error {
 	msg := slack.MsgOptionText(options.Message, false)
 
 	logFields := []zapcore.Field{
@@ -104,8 +106,13 @@ func post(client *slack.Client, options SlackOptions, logger *zap.Logger) {
 				zap.String("outcome", "error"),
 			)...,
 		)
-		// TODO return error
-		return
+		sentry.AddBreadcrumb(&sentry.Breadcrumb{
+			Data: map[string]interface{}{
+				"channel_id": options.ChannelID,
+				"msg_string": options.Message,
+			},
+		})
+		return errors.Wrap(err, "Failed to post slack message")
 	}
 
 	logger.Info("Successfully posted slack message",
@@ -115,6 +122,7 @@ func post(client *slack.Client, options SlackOptions, logger *zap.Logger) {
 			zap.String("slack_timestamp", timestamp),
 		)...,
 	)
+	return nil
 }
 
 type Assigned struct {
@@ -200,7 +208,7 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 	loaderElement := page.MustElement("#js-timeline-progressive-loader")
 	timelineFocusedItem, err := loaderElement.Attribute("data-timeline-item-src")
 	if err != nil {
-		return assignees, requester, err
+		return assignees, requester, errors.Wrap(err, "could not find timeline focused item")
 	}
 
 	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
@@ -216,8 +224,6 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 		zap.String("event", "page_visit.finished"),
 		zap.String("url", newUrl),
 	)
-	// htmlString, err := newPage.HTML()
-	// fmt.Printf("htmlString: %s\n", htmlString)
 
 	logger.Info("Searching for requested reviewer text",
 		zap.String("event", "requested_reviewer.search_started"),
@@ -232,13 +238,6 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 
 	logger.Info("Finding hovercard type",
 		zap.String("event", "hovercard_type.search_started"),
-	)
-
-	hoverType, err := requestedAReviewFrom.MustParent().Attribute("data-hovercard-type")
-
-	logger.Info("Finished finding hovercard type text",
-		zap.String("event", "hovercard_type.search_finished"),
-		zap.String("text", *hoverType),
 	)
 
 	selector := fmt.Sprintf("#event-%s > div.TimelineItem-body", eventID)
