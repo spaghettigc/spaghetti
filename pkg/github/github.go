@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"spaghetti/pkg/message"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -60,7 +60,7 @@ func NewClient(ctx context.Context, appID int64, installationID int64, privateKe
 
 	itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, appID, installationID, privateKeyFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to initialise github installation client")
 	}
 	return github.NewClient(&http.Client{Transport: itr}), nil
 }
@@ -89,7 +89,7 @@ func GetPREvents(ctx context.Context, client github.Client, logger *zap.Logger, 
 
 	err = json.NewDecoder(req.Body).Decode(&body)
 	if err != nil {
-		return eventIDs, msg, fmt.Errorf("failed to json decode request body: %w", err)
+		return eventIDs, msg, errors.Wrap(err, "failed to json decode request body")
 	}
 
 	if body.Action != "review_requested" {
@@ -117,7 +117,7 @@ func GetPREvents(ctx context.Context, client github.Client, logger *zap.Logger, 
 
 	eventIDs, htmlURL, err := getEventIds(ctx, client, body, logger)
 	if err != nil {
-		return eventIDs, msg, fmt.Errorf("failed to get event IDs: %w", err)
+		return eventIDs, msg, errors.Wrap(err, "failed to get event IDs")
 	}
 
 	msg = message.Message{
@@ -141,7 +141,7 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook, logger
 
 	_, response, err := client.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: 1, PerPage: perPage})
 	if err != nil {
-		return eventIDs, htmlURL, err
+		return eventIDs, htmlURL, errors.Wrap(err, "failed to list issue timeline events")
 	}
 	something := true
 
@@ -165,7 +165,7 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook, logger
 			zap.String("event", "page.scan_start"))
 		timeline, response, err := client.Issues.ListIssueTimeline(ctx, body.Organization.Login, body.Repository.Name, body.Number, &github.ListOptions{Page: currentPage, PerPage: perPage})
 		if err != nil {
-			return eventIDs, htmlURL, err
+			return eventIDs, htmlURL, errors.Wrap(err, "failed to list issue timeline events")
 		}
 
 		for i := len(timeline) - 1; i >= 0; i-- {
@@ -204,7 +204,7 @@ func getEventIds(ctx context.Context, client github.Client, body Webhook, logger
 
 	pull, _, err := client.PullRequests.Get(ctx, body.Organization.Login, body.Repository.Name, body.Number)
 	if err != nil {
-		return eventIDs, htmlURL, err
+		return eventIDs, htmlURL, errors.Wrap(err, "failed to fetch PR")
 	}
 	htmlURL = pull.GetHTMLURL()
 
