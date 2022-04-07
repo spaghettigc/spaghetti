@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	gh "spaghetti/pkg/github"
@@ -39,22 +38,19 @@ func login(browser *rod.Browser, username string, password string) *rod.Browser 
 	return browser
 }
 
-var SpecialError2 = errors.New("my special error 2")
-
 func mainError(logger *zap.Logger) error {
-	return SpecialError2
 	ctx := context.Background()
 
 	// slack
 	slackAPI := slack.New(os.Getenv("SLACK_TOKEN"))
 	channelID := os.Getenv("SLACK_CHANNEL_ID")
-	// appID, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
-	// if err != nil {
-	// 	logger.Error("failed to parse app ID",
-	// 		zap.String("appID", os.Getenv("APP_ID")),
-	// 	)
-	// 	return err
-	// }
+	appID, err := strconv.ParseInt(os.Getenv("APP_ID"), 10, 64)
+	if err != nil {
+		logger.Error("failed to parse app ID",
+			zap.String("appID", os.Getenv("APP_ID")),
+		)
+		return err
+	}
 
 	installationID, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
 	if err != nil {
@@ -80,7 +76,7 @@ func mainError(logger *zap.Logger) error {
 	// github
 	username := os.Getenv("GITHUB_NAME")
 	password := os.Getenv("GITHUB_PWD")
-	githubClient, err := gh.NewClient(ctx, 1212, installationID, privateKeyFile)
+	githubClient, err := gh.NewClient(ctx, appID, installationID, privateKeyFile)
 	if err != nil {
 		logger.Error("failed to initialise github client",
 			zap.Error(err),
@@ -158,22 +154,15 @@ func main() {
 		Debug:       true,
 	})
 
-	// sentry, err := monitoring.NewSentry(monitoring.SentryConfig{
-	// 	Environment: "",
-	// 	Release:     "",
-	// 	DSN:         os.Getenv("SENTRY_DSN"),
-	// 	Debug:       true,
-	// })
 	if err != nil {
 		log.Fatalf("can't initialize sentry: %v", err)
 	}
 
-	// defer sentry.Flush(time.Second * 2)
+	defer sentry.Flush(time.Second * 2)
 	defer sentry.Recover()
 
 	err = mainError(logger)
 	if err != nil {
 		sentry.CaptureException(err)
-		sentry.Flush(time.Second * 2)
 	}
 }
