@@ -6,6 +6,8 @@ import (
 	"github.com/allegro/bigcache"
 	"github.com/eko/gocache/cache"
 	"github.com/eko/gocache/marshaler"
+	"github.com/getsentry/sentry-go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +36,13 @@ func ExcludeSeenEvents(logger *zap.Logger, cacheManager *cache.Cache, marshal *m
 				zap.Error(err),
 				zap.String("event_id", eventID),
 			)
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Data: map[string]interface{}{
+					"event_id": eventID,
+				},
+			})
+			err = errors.Wrap(err, "failed to marshal event ID")
+			sentry.CaptureException(err)
 		}
 
 		unSeenEventIDs = append(unSeenEventIDs, eventID)
