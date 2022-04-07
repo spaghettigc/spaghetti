@@ -17,6 +17,9 @@ func ExcludeSeenEvents(logger *zap.Logger, cacheManager *cache.Cache, marshal *m
 		value, err := cacheManager.Get(eventID)
 
 		if err != nil && err != bigcache.ErrEntryNotFound {
+			// expected in two use cases
+			// 1. haven't seen the event
+			// 2. the cache has expired for the event
 			logger.Error("failed to get event ID from cache",
 				zap.Error(err),
 				zap.String("event_id", eventID),
