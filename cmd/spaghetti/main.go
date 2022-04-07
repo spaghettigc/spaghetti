@@ -19,6 +19,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/go-rod/rod"
 	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
 	"github.com/slack-go/slack"
 	"go.uber.org/zap"
 )
@@ -49,7 +50,7 @@ func mainError(logger *zap.Logger) error {
 		logger.Error("failed to parse app ID",
 			zap.String("appID", os.Getenv("APP_ID")),
 		)
-		return err
+		return errors.Wrap(err, "failed to parse app ID")
 	}
 
 	installationID, err := strconv.ParseInt(os.Getenv("INSTALLATION_ID"), 10, 64)
@@ -57,7 +58,7 @@ func mainError(logger *zap.Logger) error {
 		logger.Error("failed to parse installation ID",
 			zap.String("appID", os.Getenv("INSTALLATION_ID")),
 		)
-		return err
+		return errors.Wrap(err, "failed to parse installation ID")
 	}
 	privateKeyFile := os.Getenv("PRIVATE_KEY_FILE")
 
@@ -67,7 +68,7 @@ func mainError(logger *zap.Logger) error {
 		logger.Error("failed to initialise bigcache client",
 			zap.Error(err),
 		)
-		return err
+		return errors.Wrap(err, "failed to initialise bigcache client")
 	}
 	bigcacheStore := store.NewBigcache(bigcacheClient, nil)
 	cacheManager := cache.New(bigcacheStore)
@@ -81,7 +82,7 @@ func mainError(logger *zap.Logger) error {
 		logger.Error("failed to initialise github client",
 			zap.Error(err),
 		)
-		return err
+		return errors.Wrap(err, "failed to initialise github client")
 	}
 
 	// headless browser
@@ -96,6 +97,7 @@ func mainError(logger *zap.Logger) error {
 			logger.Error("failed to get the pr events",
 				zap.Error(err),
 			)
+			err = errors.Wrap(err, "failed to get the pr events")
 			sentry.CaptureException(err)
 			return
 		}
@@ -129,7 +131,7 @@ func mainError(logger *zap.Logger) error {
 		logger.Error("failed to server",
 			zap.Error(err),
 		)
-		return err
+		return errors.Wrap(err, "failed to server")
 	}
 	return nil
 }
