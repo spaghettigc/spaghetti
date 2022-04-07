@@ -277,3 +277,16 @@ https://blog.sentry.io/2019/08/15/introducing-sentrys-unified-go-sdk#capturing-e
 https://blog.sentry.io/2019/08/15/introducing-sentrys-unified-go-sdk#capturing-errors We tried this example and it works but the stack doesn't show up for our own main function.
 
 
+
+# notes of 07/04/2022
+After reading this https://incident.io/blog/golang-errors
+We found that stdlib errors doesn't give stack traces at all, we have to use pkg/errors combined with errors.Wrap()
+This reflects the same duplicate stacktrace problem in the article above, but it works for our usecase to see the stack trace from whereever we call return errors.Wrap(err, "some msg")
+
+https://github.com/gocardless/gc-cli/blob/bab65d2e4b80fdc624e27671759f0776c78ef578/helper/sentry.go#L32
+https://pkg.go.dev/github.com/getsentry/sentry-go?utm_source=godoc#Hub
+https://pkg.go.dev/github.com/getsentry/sentry-go?utm_source=godoc#Scope
+https://pkg.go.dev/github.com/getsentry/sentry-go?utm_source=godoc#Breadcrumb
+https://docs.sentry.io/product/issues/issue-details/breadcrumbs/
+
+We have refactored error handling with errors.Wrap.
