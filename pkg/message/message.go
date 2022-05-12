@@ -2,7 +2,6 @@ package message
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -33,6 +32,7 @@ type PostMessageOptions struct {
 	Browser     *rod.Browser
 	Marshal     *marshaler.Marshaler
 	SlackClient *slack.Client
+	UserMapping UserMap
 }
 
 func PostMessage(options PostMessageOptions) error {
@@ -70,7 +70,15 @@ func PostMessage(options PostMessageOptions) error {
 
 	for _, assignee := range assignees {
 
-		slackMessage := FormatMessage(message.URL, message.Title, message.Body, assignee, requester)
+		formatMessageOpt := FormatMessageOptions{
+			URL:         message.URL,
+			Title:       message.Title,
+			Body:        message.Body,
+			Assignee:    assignee,
+			Requester:   requester,
+			UserMapping: options.UserMapping,
+		}
+		slackMessage := FormatMessage(formatMessageOpt)
 
 		slackOptions := SlackOptions{
 			Message:   slackMessage,
@@ -130,22 +138,41 @@ type Assigned struct {
 	Team string
 }
 
-func FormatMessage(url string, title string, body string, assignee Assigned, requester string) string {
-	prTitle := fmt.Sprintf("PR title: %s (%s).", title, url)
+type UserMap map[string]string
+
+type FormatMessageOptions struct {
+	URL         string
+	Title       string
+	Body        string
+	Assignee    Assigned
+	Requester   string
+	UserMapping UserMap
+}
+
+func FormatMessage(options FormatMessageOptions) string {
+	prTitle := fmt.Sprintf("PR title: %s (%s).", options.Title, options.URL)
 
 	teamAndSender := fmt.Sprintf(
 		"%s team was requested to review by %s.",
-		assignee.Team,
-		requester,
+		options.Assignee.Team,
+		options.Requester,
 	)
 
 	prBody := fmt.Sprintf(
 		"%s \n",
-		Truncate(body),
+		Truncate(options.Body),
 	)
 
-	var assigneeMsg string
-	assigneeMsg = FormatAssignee(assignee.User)
+	mappedAssignee, found := options.UserMapping[options.Assignee.User]
+
+	if !found {
+		mappedAssignee = options.Assignee.User
+	}
+
+	assigneeMsg := fmt.Sprintf(
+		"<@%s> was assigned.",
+		mappedAssignee,
+	)
 
 	message := fmt.Sprintf(
 		"%s %s\n"+
@@ -158,28 +185,6 @@ func FormatMessage(url string, title string, body string, assignee Assigned, req
 	)
 
 	return message
-}
-
-func FormatAssignee(githubUser string) string {
-	cecile := os.Getenv("CECILE_SLACK_ID")
-	jason := os.Getenv("JASON_SLACK_ID")
-
-	userMap := map[string]string{
-		"GitCecile": cecile,
-		"thepesta":  jason,
-	}
-
-	slackUser, found := userMap[githubUser]
-
-	assignee := githubUser
-	if found {
-		assignee = slackUser
-	}
-
-	return fmt.Sprintf(
-		"<@%s> was assigned.",
-		assignee,
-	)
 }
 
 func Truncate(text string) string {

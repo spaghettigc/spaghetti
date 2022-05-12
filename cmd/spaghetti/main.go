@@ -90,6 +90,15 @@ func mainError(logger *zap.Logger) error {
 	// TODO what happens if we got logged out?
 	browser = login(browser, username, password)
 
+	// github <> slack mapping
+	cecile := os.Getenv("CECILE_SLACK_ID")
+	jason := os.Getenv("JASON_SLACK_ID")
+
+	userMapping := message.UserMap{
+		"GitCecile": cecile,
+		"thepesta":  jason,
+	}
+
 	http.HandleFunc("/webhooks", func(w http.ResponseWriter, req *http.Request) {
 
 		eventIDs, msg, err := gh.GetPREvents(ctx, *githubClient, logger, req)
@@ -135,6 +144,7 @@ func mainError(logger *zap.Logger) error {
 				Browser:     browser,
 				Marshal:     marshal,
 				SlackClient: slackAPI,
+				UserMapping: userMapping,
 			}
 
 			// TODO what happens if postmessage fails?
