@@ -113,7 +113,21 @@ func mainError(logger *zap.Logger) error {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 
-		for _, eventID := range unSeenEventIds {
+		successfullyStoredIDs, failedToStoreIDs := cache.StoreInCache(logger, cacheManager, unSeenEventIds)
+
+		for _, failedToStoreID := range failedToStoreIDs {
+			err := failedToStoreID.Err
+
+			sentry.AddBreadcrumb(&sentry.Breadcrumb{
+				Data: map[string]interface{}{
+					"event_id": failedToStoreID.EventId,
+				},
+			})
+
+			sentry.CaptureException(err)
+		}
+
+		for _, eventID := range successfullyStoredIDs {
 			opt := message.PostMessageOptions{
 				EventID:     eventID,
 				ChannelID:   channelID,
