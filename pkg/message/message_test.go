@@ -44,3 +44,29 @@ func Test_FormatMessage_UserMappingSuccess(t *testing.T) {
 	message := message.FormatMessage(opt)
 	g.Expect(message).To(Equal("<@slackUser> was assigned. PR title: fix: wow we componentised pricing (https://github.com/dontgohere/pulls/9999/).\nBilling and revenue team was requested to review by requester_user. \nwe did it \n"))
 }
+
+func Test_FormatMessage_UserMappingFailed(t *testing.T) {
+	g := NewGomegaWithT(t)
+	url := "https://github.com/dontgohere/pulls/9999/"
+	title := "fix: wow we componentised pricing"
+	body := "we did it"
+	assignee := message.Assigned{
+		User: "githubUser",
+		Team: "Billing and revenue",
+	}
+	requester := "requester_user"
+	userMapping := message.UserMap{
+		"notGithubUser": "slackUser",
+	}
+
+	opt := message.FormatMessageOptions{
+		URL:         url,
+		Title:       title,
+		Body:        body,
+		Assignee:    assignee,
+		Requester:   requester,
+		UserMapping: userMapping,
+	}
+	message := message.FormatMessage(opt)
+	g.Expect(message).To(Equal("<@githubUser> was assigned. PR title: fix: wow we componentised pricing (https://github.com/dontgohere/pulls/9999/).\nBilling and revenue team was requested to review by requester_user. \nwe did it \n"))
+}
