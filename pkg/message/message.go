@@ -257,6 +257,11 @@ func ParseTimelineItemText(text string) ([]Assigned, string, error) {
 		var user string
 		var team string
 		for i, t := range txtArr {
+			if t == "" {
+				// we need to return the original text along with the index for debugging
+				return assignees, requester, errors.New("failed to parse timeline item text")
+			}
+
 			if i == 0 { // entire match
 				continue
 			}
