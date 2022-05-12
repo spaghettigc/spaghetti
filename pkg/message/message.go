@@ -49,7 +49,9 @@ func PostMessage(options PostMessageOptions) error {
 	}
 	message := cacheValue.(*Message)
 	url := fmt.Sprintf("%s#event-%s", message.URL, options.EventID)
-	assignees, requester, err := GetAssignedReviewersAndTeam(options.Browser, options.EventID, url, options.Logger) // retunring zero assignees bug?
+	timelineItemText, err := ScrapeTimelineItemText(options.Browser, options.EventID, url, options.Logger) // retunring zero assignees bug?
+	assignees, requester, err := ParseTimelineItemText(timelineItemText)
+
 	if err != nil {
 		logger.Error("failed to get assigned reviewers and team",
 			zap.Error(err),
@@ -195,16 +197,7 @@ func Truncate(text string) string {
 	return text[:size] + "..."
 }
 
-// TODO rename this to include requester
-func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string, logger *zap.Logger) (assignees []Assigned, requester string, err error) {
-	// assignees := make([]Assigned, 0)
-
-	// b, err := ioutil.ReadAll(resp.Body)
-	// 5777536241
-	// Request URL: https://github.com/spaghettigc/spaghetti/timeline_focused_item?after_cursor=Y3Vyc29yOnYyOpPPAAABfFpVwXABqjU0Mjc1ODgyNjc%3D&before_cursor=Y3Vyc29yOnYyOpPPAAABfXspOVgBqjU3MDU1NjQ0NDc%3D&id=PR_kwDOGB7j384scVH7&anchor=event-5777536241
-
-	// err = ioutil.WriteFile(fmt.Sprintf("recording/%s.html", "boop"), b, 0644)
-
+func ScrapeTimelineItemText(browser *rod.Browser, eventID string, h string, logger *zap.Logger) (string, error) {
 	// use headless browser
 	page := browser.MustPage(h)
 	time.Sleep(1 * time.Second) // TODO non timeout way to wait for client render
@@ -213,7 +206,7 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 	loaderElement := page.MustElement("#js-timeline-progressive-loader")
 	timelineFocusedItem, err := loaderElement.Attribute("data-timeline-item-src")
 	if err != nil {
-		return assignees, requester, errors.Wrap(err, "could not find timeline focused item")
+		return "", errors.Wrap(err, "could not find timeline focused item")
 	}
 
 	newUrl := fmt.Sprintf("https://github.com/%s&anchor=event-%s", *timelineFocusedItem, eventID)
@@ -230,17 +223,6 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 		zap.String("url", newUrl),
 	)
 
-	logger.Info("Searching for requested reviewer text",
-		zap.String("event", "requested_reviewer.search_started"),
-	)
-	requestedAReviewFrom := newPage.MustElement("a[data-hovercard-type] > span") // This doesn't work as without authentication, the span doesn't appear
-	requestedAReviewFromText := requestedAReviewFrom.MustText()
-
-	logger.Info("Finished searching for requested reviewer text",
-		zap.String("event", "requested_reviewer.search_finished"),
-		zap.String("text", requestedAReviewFromText),
-	)
-
 	logger.Info("Finding hovercard type",
 		zap.String("event", "hovercard_type.search_started"),
 	)
@@ -254,16 +236,22 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 	)
 
 	el := newPage.MustElement(selector)
-	text := el.MustText()
+	timelineItemText := el.MustText()
 
 	logger.Info("Finding timeline item text",
 		zap.String("event", "timeline_item.search_finished"),
 		zap.String("selector", selector),
 		zap.String("event_id", eventID),
-		zap.String("text", text),
+		zap.String("text", timelineItemText),
 	)
 
+	return timelineItemText, nil
+}
+
+func ParseTimelineItemText(text string) (assignees []Assigned, requester string, err error) {
+
 	r, _ := regexp.Compile(`(?P<requester>.+) requested a review from (?P<reviewer>.+) \(assigned from (?P<team>.+)\)`)
+
 	for _, txtArr := range r.FindAllStringSubmatch(text, -1) {
 		var user string
 		var team string
@@ -286,6 +274,5 @@ func GetAssignedReviewersAndTeam(browser *rod.Browser, eventID string, h string,
 
 		assignees = append(assignees, Assigned{User: user, Team: team})
 	}
-
 	return assignees, requester, nil
 }
