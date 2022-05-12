@@ -248,8 +248,9 @@ func ScrapeTimelineItemText(browser *rod.Browser, eventID string, h string, logg
 	return timelineItemText, nil
 }
 
-func ParseTimelineItemText(text string) (assignees []Assigned, requester string, err error) {
-
+func ParseTimelineItemText(text string) ([]Assigned, string, error) {
+	var assignees []Assigned
+	var requester string
 	r, _ := regexp.Compile(`(?P<requester>.+) requested a review from (?P<reviewer>.+) \(assigned from (?P<team>.+)\)`)
 
 	for _, txtArr := range r.FindAllStringSubmatch(text, -1) {
