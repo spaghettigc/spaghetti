@@ -254,7 +254,7 @@ https://github.com/gocardless/cookiecutter-georges/pull/26/files?file-filters%5B
   - [x]logging - Jason
   - [x] makefile
   - [x]readme setup - Cecile -> Initiated a readme that needs to be refined
-  - [] error handling
+  - [x] error handling
   - [] tests
 - Deploy to Heroku
 - Dockerize
@@ -290,3 +290,31 @@ https://pkg.go.dev/github.com/getsentry/sentry-go?utm_source=godoc#Breadcrumb
 https://docs.sentry.io/product/issues/issue-details/breadcrumbs/
 
 We have refactored error handling with errors.Wrap.
+
+# notes of 14/04/2022
+
+https://github.com/rakyll/gotest
+https://github.com/eko/gocache/blob/master/cache/cache_test.go
+https://github.com/eko/gocache#write-your-own-custom-cache
+https://pkg.go.dev/go.uber.org/zap@v1.21.0/zaptest#NewLogger
+https://github.com/eko/gocache/blob/master/test/mocks/cache/cache_interface.go
+
+We need to review the condition in lookup
+```
+if err != nil && err != bigcache.ErrEntryNotFound {}
+```
+
+We have managed to control the behaviour of the cache by mocking the store.
+```
+	store := mocksStore.NewMockStoreInterface(ctrl)
+	store.EXPECT().Get("event1").Return("event1", nil)
+	store.EXPECT().Get("event2").Return(nil, )
+
+	cache := cache.New(store)
+```
+
+# notes of 28/04/2022
+https://github.com/gocardless/anu/blob/master/terraform/github/users/users.jsonnet
+https://onsi.github.io/gomega/#making-assertions
+https://github.com/eko/gocache/blob/1a9de67e673d64a61821c0fe3bc8e1548a7333f1/cache/cache_test.go#L32-L55
+https://github.com/eko/gocache/blob/1a9de67e673d64a61821c0fe3bc8e1548a7333f1/marshaler/marshaler_test.go#L126-L149
