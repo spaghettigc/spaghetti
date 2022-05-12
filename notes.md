@@ -318,3 +318,9 @@ https://github.com/gocardless/anu/blob/master/terraform/github/users/users.jsonn
 https://onsi.github.io/gomega/#making-assertions
 https://github.com/eko/gocache/blob/1a9de67e673d64a61821c0fe3bc8e1548a7333f1/cache/cache_test.go#L32-L55
 https://github.com/eko/gocache/blob/1a9de67e673d64a61821c0fe3bc8e1548a7333f1/marshaler/marshaler_test.go#L126-L149
+
+# notes of 12/05/2022
+https://github.com/spaghettigc/spaghetti/commit/f7b6c27d47ed8cd677a34878e88371ec97e741c6#diff-9ab20159ff898156229b365589a222ca8277c74f0a26464481f60bf12b2d5d0bL36
+
+We need to finish the tests in Message
+- done for Truncate and FormatMessage
