@@ -70,3 +70,19 @@ func Test_StoreInCacheFailed(t *testing.T) {
 	g.Expect(failedToStoreIDs[0].Err).To(MatchError(errRandom))
 	g.Expect(failedToStoreIDs[0].EventId).To(Equal("event1"))
 }
+
+func Test_StoreInCacheSuccess(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	logger := zap.NewExample()
+	ctrl := gomock.NewController(t)
+	store := mocksStore.NewMockStoreInterface(ctrl)
+	store.EXPECT().Set("event1", nil, nil).Return(nil)
+	eventIDs := []string{"event1"}
+	c := gocache.New(store)
+
+	successfullyStoredIDs, failedToStoreIDs := cache.StoreInCache(logger, c, eventIDs)
+	g.Expect(failedToStoreIDs).To(BeEmpty())
+	g.Expect(successfullyStoredIDs).To(ConsistOf("event1"))
+	g.Expect(len(successfullyStoredIDs)).To(Equal(1))
+}
