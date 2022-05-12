@@ -52,15 +52,9 @@ func StoreInCache(logger *zap.Logger, cacheManager *gocache.Cache, eventIDs []st
 				zap.Error(err),
 				zap.String("event_id", eventID),
 			)
-			// sentry.AddBreadcrumb(&sentry.Breadcrumb{
-			// 	Data: map[string]interface{}{
-			// 		"event_id": eventID,
-			// 	},
-			// })
 			err = errors.Wrap(err, "failed to marshal event ID")
 			failedToStoreIDs = append(failedToStoreIDs, FailedIdsResult{EventId: eventID, Err: err})
 			continue
-			// sentry.CaptureException(err)
 		}
 		successfullyStoredIDs = append(successfullyStoredIDs, eventID)
 	}
