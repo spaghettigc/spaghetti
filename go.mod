@@ -8,8 +8,10 @@ require (
 	github.com/eko/gocache v1.2.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-rod/rod v0.101.8
+	github.com/golang/mock v1.5.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/joho/godotenv v1.3.0
+	github.com/onsi/gomega v1.10.5
 	github.com/pkg/errors v0.9.1
 	github.com/slack-go/slack v0.9.5
 	go.uber.org/zap v1.13.0
@@ -52,7 +54,8 @@ require (
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20211008194852-3b03d305991f // indirect
-	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

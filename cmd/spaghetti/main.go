@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"spaghetti/pkg/cache"
 	gh "spaghetti/pkg/github"
-	"spaghetti/pkg/lookup"
 	"spaghetti/pkg/message"
 	"strconv"
 	"time"
@@ -13,7 +13,7 @@ import (
 	"os"
 
 	"github.com/allegro/bigcache"
-	"github.com/eko/gocache/cache"
+	gocache "github.com/eko/gocache/cache"
 	"github.com/eko/gocache/marshaler"
 	"github.com/eko/gocache/store"
 	"github.com/getsentry/sentry-go"
@@ -71,7 +71,7 @@ func mainError(logger *zap.Logger) error {
 		return errors.Wrap(err, "failed to initialise bigcache client")
 	}
 	bigcacheStore := store.NewBigcache(bigcacheClient, nil)
-	cacheManager := cache.New(bigcacheStore)
+	cacheManager := gocache.New(bigcacheStore)
 	marshal := marshaler.New(cacheManager)
 
 	// github
@@ -102,7 +102,16 @@ func mainError(logger *zap.Logger) error {
 			return
 		}
 
-		unSeenEventIds := lookup.ExcludeSeenEvents(logger, cacheManager, marshal, eventIDs, msg)
+		unSeenEventIds, err := cache.ExcludeSeenEvents(logger, cacheManager, marshal, eventIDs, msg)
+
+		if err != nil {
+			logger.Error("failed to access event from cache",
+				zap.Error(err),
+			)
+			err = errors.Wrap(err, "failed to access event from cache")
+			sentry.CaptureException(err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 
 		for _, eventID := range unSeenEventIds {
 			opt := message.PostMessageOptions{
