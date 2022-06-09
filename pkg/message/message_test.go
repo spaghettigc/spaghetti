@@ -70,3 +70,37 @@ func Test_FormatMessage_UserMappingFailed(t *testing.T) {
 	message := message.FormatMessage(opt)
 	g.Expect(message).To(Equal("<@githubUser> was assigned. PR title: fix: wow we componentised pricing (https://github.com/dontgohere/pulls/9999/).\nBilling and revenue team was requested to review by requester_user. \nwe did it \n"))
 }
+
+func Test_ParseTimelineItemText_Success(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	input := "requester_username requested a review from reviewer_username (assigned from team_name)"
+
+	assignees, requester, err := message.ParseTimelineItemText(input)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(requester).Should(Equal("requester_username"))
+	g.Expect(assignees).Should(Equal([]message.Assigned{
+		{
+			User: "reviewer_username",
+			Team: "team_name",
+		},
+	}))
+}
+
+func Test_ParseTimelineItemText_Errors_WhenRequesterNotPresent(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	input := "requested a review from reviewer_username (assigned from team_name)"
+
+	_, _, err := message.ParseTimelineItemText(input)
+	g.Expect(err).Should(HaveOccurred())
+}
+
+func Test_ParseTimelineItemText_Errors_WhenAssigneeNotPresent(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	input := "requester_name requested a review from (assigned from team_name)"
+
+	_, _, err := message.ParseTimelineItemText(input)
+	g.Expect(err).Should(HaveOccurred())
+}

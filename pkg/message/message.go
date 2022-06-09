@@ -251,17 +251,16 @@ func ScrapeTimelineItemText(browser *rod.Browser, eventID string, h string, logg
 func ParseTimelineItemText(text string) ([]Assigned, string, error) {
 	var assignees []Assigned
 	var requester string
+	// We only support the format "requester_username requested a review from reviewer_username (assigned from team_name)"
+	// Multiple teams and requestees won't work
+	// (e.g "ThePesta requested review from GitCecile (assigned from spaghettigc/betterspaghettiteam), spaghettigc/betterspaghettiteam, spaghettigc/obviousspaghettiteam and wmytbaow (assigned from spaghettigc/obviousspaghettiteam) and removed request for spaghettigc/betterspaghettiteam, GitCecile, spaghettigc/obviousspaghettiteam and wmytbaow ")
 	r, _ := regexp.Compile(`(?P<requester>.+) requested a review from (?P<reviewer>.+) \(assigned from (?P<team>.+)\)`)
 
 	for _, txtArr := range r.FindAllStringSubmatch(text, -1) {
+		fmt.Println(fmt.Sprintf("%v", txtArr))
 		var user string
 		var team string
 		for i, t := range txtArr {
-			if t == "" {
-				// we need to return the original text along with the index for debugging
-				return assignees, requester, errors.New("failed to parse timeline item text")
-			}
-
 			if i == 0 { // entire match
 				continue
 			}
@@ -280,5 +279,10 @@ func ParseTimelineItemText(text string) ([]Assigned, string, error) {
 
 		assignees = append(assignees, Assigned{User: user, Team: team})
 	}
+
+	if requester == "" || len(assignees) == 0 {
+		return assignees, requester, errors.New("failed to parse in timeline item text")
+	}
+
 	return assignees, requester, nil
 }
